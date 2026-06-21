@@ -1,0 +1,15 @@
+services:
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/owner/web:latest}
+    container_name: zhizhu-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true

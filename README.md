@@ -1,0 +1,102 @@
+# Zhizhu Server Deploy
+
+Cấu trúc này tách riêng từng service để dễ quản lý:
+
+```text
+/opt/zhizhu
+├── backend
+│   ├── docker-compose.yml
+│   └── .env.example
+├── redis
+│   ├── docker-compose.yml
+│   └── .env.example
+├── web
+│   ├── docker-compose.yml
+│   └── .env.example
+└── cloudflared
+    └── config.example.yml
+```
+
+## 1. Copy lên server
+
+```bash
+sudo mkdir -p /opt/zhizhu
+sudo chown -R $USER:$USER /opt/zhizhu
+```
+
+Copy các thư mục trong project này vào `/opt/zhizhu`.
+
+## 2. Tạo Docker network dùng chung
+
+Chạy 1 lần duy nhất:
+
+```bash
+docker network create zhizhu_net
+```
+
+## 3. Chạy Redis
+
+```bash
+cd /opt/zhizhu/redis
+cp .env.example .env
+docker compose up -d
+```
+
+## 4. Chạy Backend
+
+```bash
+cd /opt/zhizhu/backend
+cp .env.example .env
+nano .env
+
+docker compose up -d
+```
+
+## 5. Chạy Web
+
+```bash
+cd /opt/zhizhu/web
+cp .env.example .env
+nano .env
+
+docker compose up -d
+```
+
+## 6. Kiểm tra
+
+```bash
+docker ps
+```
+
+Logs backend:
+
+```bash
+docker logs zhizhu-backend -n 100
+```
+
+Logs redis:
+
+```bash
+docker logs zhizhu-redis -n 100
+```
+
+Logs web:
+
+```bash
+docker logs zhizhu-web -n 100
+```
+
+## 7. Cloudflared
+
+Ví dụ route:
+
+```text
+api.zhizhu.online -> http://127.0.0.1:3000
+app.zhizhu.online -> http://127.0.0.1:8080
+```
+
+Tham khảo file:
+
+```text
+cloudflared/config.example.yml
+```
