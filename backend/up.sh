@@ -7,7 +7,62 @@ if [ ! -f .vault.json ]; then
   exit 1
 fi
 
-npx --yes @zhizhu_dev/vault-start production --write-env
+VAULT_ADDR=$(jq -r '.addr' .vault.json)
+SECRET_PATH=$(jq -r '.envs.production' .vault.json)
+KV=$(jq -r '.kv // 2' .vault.json)
+
+# ── auth method ──────────────────────────────────────────────────────────────
+
+echo ""
+echo "? Which login method?"
+PS3="> "
+select METHOD in "Token" "Userpass" "LDAP"; do
+  [ -n "$METHOD" ] && break
+done
+
+case $METHOD in
+  Token)
+    read -rsp "? Vault token: " VAULT_TOKEN; echo
+    ;;
+  Userpass)
+    read -rp  "? Username: "   USERNAME
+    read -rsp "? Password: "   PASSWORD; echo
+    VAULT_TOKEN=$(curl -sf "${VAULT_ADDR}/v1/auth/userpass/login/${USERNAME}" \
+      -d "{\"password\":\"${PASSWORD}\"}" | jq -r '.auth.client_token')
+    ;;
+  LDAP)
+    read -rp  "? LDAP username: " USERNAME
+    read -rsp "? LDAP password: " PASSWORD; echo
+    VAULT_TOKEN=$(curl -sf "${VAULT_ADDR}/v1/auth/ldap/login/${USERNAME}" \
+      -d "{\"password\":\"${PASSWORD}\"}" | jq -r '.auth.client_token')
+    ;;
+esac
+
+# ── fetch secrets ─────────────────────────────────────────────────────────────
+
+MOUNT=$(echo "$SECRET_PATH" | cut -d/ -f1)
+REST=$(echo "$SECRET_PATH"  | cut -d/ -f2-)
+if [ "$KV" -eq 2 ]; then
+  API_PATH="${MOUNT}/data/${REST}"
+else
+  API_PATH="${SECRET_PATH}"
+fi
+
+RESPONSE=$(curl -sf "${VAULT_ADDR}/v1/${API_PATH}" \
+  -H "X-Vault-Token: ${VAULT_TOKEN}")
+
+if [ "$KV" -eq 2 ]; then
+  DATA=$(echo "$RESPONSE" | jq -r '.data.data')
+else
+  DATA=$(echo "$RESPONSE" | jq -r '.data')
+fi
+
+# ── write .env ────────────────────────────────────────────────────────────────
+
+echo "$DATA" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
+echo "✔ Secrets written to .env"
+
+# ── deploy ────────────────────────────────────────────────────────────────────
 
 docker compose pull
 docker compose up -d

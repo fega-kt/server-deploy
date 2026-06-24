@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ${APP_IMAGE:-ghcr.io/owner/repo:latest}
+    image: ${APP_IMAGE:-ghcr.io/fega-kt/backend-mikroorm:latest}
     container_name: zhizhu-backend
     restart: unless-stopped
     env_file:
