@@ -7,9 +7,18 @@ if [ ! -f .vault.json ]; then
   exit 1
 fi
 
-VAULT_ADDR=$(jq -r '.addr' .vault.json)
-SECRET_PATH=$(jq -r '.envs.production' .vault.json)
+VAULT_ADDR=$(jq -r '.addr // empty' .vault.json)
+SECRET_PATH=$(jq -r '.envs.production // empty' .vault.json)
 KV=$(jq -r '.kv // 2' .vault.json)
+
+if [ -z "$VAULT_ADDR" ]; then
+  echo '[up.sh] Vault address is required. Set "addr" in .vault.json.' >&2
+  exit 1
+fi
+if [ -z "$SECRET_PATH" ]; then
+  echo '[up.sh] Secret path is required. Set "envs.production" in .vault.json.' >&2
+  exit 1
+fi
 
 # ── auth method ──────────────────────────────────────────────────────────────
 
