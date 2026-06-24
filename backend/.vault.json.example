@@ -1,0 +1,7 @@
+{
+  "addr": "http://127.0.0.1:8200",
+  "kv": 2,
+  "envs": {
+    "production": "secret/zhizhu/backend"
+  }
+}

@@ -6,6 +6,7 @@
 .vault-init.json
 .vault-unseal-key
 .vault-root-token
+**/.vault.json
 
 # Cloudflare credentials
 cloudflared/*.json

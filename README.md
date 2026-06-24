@@ -44,13 +44,19 @@ docker compose up -d
 
 ## 4. Chạy Backend
 
+Backend lấy secrets từ HashiCorp Vault thay vì chỉnh `.env` tay:
+
 ```bash
 cd /opt/zhizhu/backend
-cp .env.example .env
-nano .env
+cp .vault.json.example .vault.json
+nano .vault.json   # điền đúng addr và đường dẫn secret
 
-docker compose up -d
+bash up.sh
 ```
+
+Script sẽ hỏi auth method (Token / Userpass / LDAP), xác thực với Vault, ghi secrets vào `.env` rồi `docker compose up -d` tự động.
+
+> **Lưu ý:** Vault phải đang chạy và đã được unseal trước bước này. Xem [infrastructure/README.md](infrastructure/README.md).
 
 ## 5. Chạy Web
 
