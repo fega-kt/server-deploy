@@ -3,8 +3,10 @@ services:
     image: ${APP_IMAGE:-ghcr.io/fega-kt/backend-mikroorm:latest}
     container_name: zhizhu-backend
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      VAULT_TOKEN: ${VAULT_TOKEN}
+      VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
+      VAULT_AUTH_METHOD: ${VAULT_AUTH_METHOD}
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
     networks:
