@@ -1,6 +1,7 @@
 services:
   app:
     image: ${APP_IMAGE:-ghcr.io/fega-kt/frontend-mikroorm:latest}
+    container_name: zhizhu-frontend
     restart: unless-stopped
     ports:
       - "3333:80"
