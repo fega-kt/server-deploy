@@ -24,7 +24,7 @@ done < <(python3 -c "
 import sys, json
 r = json.loads(sys.stdin.read())
 for k, v in r['data']['data'].items():
-    print(f'{k}={v}')
+    print(f'{k}={str(v).lower() if isinstance(v, bool) else v}')
 " <<< "$RESPONSE") || { echo "[vault-init] Failed to parse Vault response" >&2; exit 1; }
 
 echo "[vault-init] Secrets loaded from Vault"
