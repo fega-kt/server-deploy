@@ -42,7 +42,6 @@ with open(path) as f:
     cfg = json.load(f)
 cfg.setdefault('server', {})
 cfg['server']['token'] = {'enable': os.environ.get('JWT_ENABLED', 'false') == 'true', 'secret': os.environ['JWT_SECRET'], 'authorizationHeader': os.environ.get('JWT_HEADER', 'Authorization')}
-cfg['server']['siteUrl'] = 'http://documentserver/'
 with open(path, 'w') as f:
     json.dump(cfg, f, indent=2)
 "
