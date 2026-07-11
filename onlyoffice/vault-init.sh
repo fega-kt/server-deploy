@@ -49,7 +49,10 @@ with open(path, 'w') as f:
    supervisorctl restart ds:example
    echo "[vault-init] ds:example started") &
 else
-  echo "[vault-init] EXAMPLE_ENABLED=false, skipping ds:example"
+  echo "[vault-init] EXAMPLE_ENABLED=false, stopping ds:example..."
+  (until supervisorctl status ds:docservice 2>/dev/null | grep -q RUNNING; do sleep 5; done
+   supervisorctl stop ds:example 2>/dev/null || true
+   echo "[vault-init] ds:example stopped") &
 fi
 
 exec "$@"
