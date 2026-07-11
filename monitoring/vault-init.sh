@@ -20,10 +20,12 @@ while IFS= read -r line; do
   key="${line%%=*}"
   value="${line#*=}"
   export "$key=$value"
-done < <(echo "$RESPONSE" | jq -r '.data.data | to_entries[] | "\(.key)=\(.value)"') || {
-  echo "[vault-init] Failed to parse Vault response" >&2
-  exit 1
-}
+done < <(python3 -c "
+import sys, json
+r = json.loads(sys.stdin.read())
+for k, v in r['data']['data'].items():
+    print(f'{k}={str(v).lower() if isinstance(v, bool) else v}')
+" <<< "$RESPONSE") || { echo "[vault-init] Failed to parse Vault response" >&2; exit 1; }
 
 echo "[vault-init] Secrets loaded from Vault"
 echo "[vault-init] GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-not set}"
