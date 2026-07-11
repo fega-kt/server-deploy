@@ -35,8 +35,18 @@ echo "[vault-init] EXAMPLE_ENABLED=${EXAMPLE_ENABLED:-not set}"
 if [ "${EXAMPLE_ENABLED:-false}" = "true" ]; then
   echo "[vault-init] EXAMPLE_ENABLED=true, waiting for ds:docservice..."
   (until supervisorctl status ds:docservice 2>/dev/null | grep -q RUNNING; do sleep 5; done
-   sed -i 's/"enable": false/"enable": true/' /etc/onlyoffice/documentserver-example/local.json
-   echo "[vault-init] Patched example JWT config"
+   python3 -c "
+import json, os
+path = '/etc/onlyoffice/documentserver-example/local.json'
+with open(path) as f:
+    cfg = json.load(f)
+cfg.setdefault('server', {})
+cfg['server']['token'] = {'enable': True, 'secret': os.environ['JWT_SECRET'], 'authorizationHeader': 'Authorization'}
+cfg['server']['siteUrl'] = 'http://documentserver/'
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+"
+   echo "[vault-init] Patched example config (JWT + siteUrl)"
    supervisorctl restart ds:example
    echo "[vault-init] ds:example started") &
 else
