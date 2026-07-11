@@ -113,11 +113,17 @@ Datasource Prometheus và 2 dashboard được provisioning tự động:
 
 ## Cloudflare Tunnel
 
-Thêm route vào tunnel config:
+Thêm route vào tunnel config (`/etc/cloudflared/config.yml`):
 
 ```yaml
 - hostname: monitor.zhizhu.online
-  service: http://localhost:3001
+  service: http://127.0.0.1:3001
+```
+
+Sau đó restart tunnel:
+
+```bash
+sudo systemctl restart cloudflared
 ```
 
 ## Ghi chú bảo mật
