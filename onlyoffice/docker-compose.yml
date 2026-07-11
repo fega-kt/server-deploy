@@ -1,0 +1,34 @@
+services:
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: zhizhu-onlyoffice
+    restart: unless-stopped
+    environment:
+      JWT_ENABLED: ${JWT_ENABLED:-true}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_HEADER: ${JWT_HEADER:-Authorization}
+    ports:
+      - "127.0.0.1:${ONLYOFFICE_PORT:-8090}:80"
+    volumes:
+      - onlyoffice_logs:/var/log/onlyoffice
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_lib:/var/lib/onlyoffice
+      - onlyoffice_db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - zhizhu_net
+
+volumes:
+  onlyoffice_logs:
+  onlyoffice_data:
+  onlyoffice_lib:
+  onlyoffice_db:
+
+networks:
+  zhizhu_net:
+    external: true
