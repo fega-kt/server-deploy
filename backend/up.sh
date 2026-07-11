@@ -58,12 +58,21 @@ else
 fi
 
 RESPONSE=$(curl -sf "${VAULT_ADDR}/v1/${API_PATH}" \
-  -H "X-Vault-Token: ${VAULT_TOKEN}")
+  -H "X-Vault-Token: ${VAULT_TOKEN}" || {
+    echo "[up.sh] Failed to fetch secrets from Vault at ${VAULT_ADDR}/v1/${API_PATH}" >&2
+    echo "[up.sh] Check: Vault token valid? Secret path correct? Vault reachable?" >&2
+    exit 1
+  })
 
 if [ "$KV" -eq 2 ]; then
   DATA=$(echo "$RESPONSE" | jq -r '.data.data')
 else
   DATA=$(echo "$RESPONSE" | jq -r '.data')
+fi
+
+if [ -z "$DATA" ] || [ "$DATA" = "null" ]; then
+  echo "[up.sh] Secret not found at path: ${API_PATH}" >&2
+  exit 1
 fi
 
 # ── write .env ────────────────────────────────────────────────────────────────
