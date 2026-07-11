@@ -9,7 +9,6 @@ services:
       VAULT_ADDR: ${VAULT_ADDR}
       VAULT_TOKEN: ${VAULT_TOKEN}
       VAULT_SECRET_PATH: secret/onlyoffice
-      EXAMPLE_ENABLED: ${EXAMPLE_ENABLED:-false}
     ports:
       - "127.0.0.1:8090:80"
     volumes:
