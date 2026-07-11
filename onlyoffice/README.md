@@ -61,6 +61,16 @@ docker logs zhizhu-onlyoffice -n 50
 curl http://localhost:8090/healthcheck   # kết quả mong đợi: true
 ```
 
+### Test example (tùy chọn)
+
+Example không tự chạy, cần start thủ công:
+
+```bash
+docker exec zhizhu-onlyoffice sudo supervisorctl start ds:example
+```
+
+Sau đó truy cập `office.zhizhu.online/example/` để test upload và xem file.
+
 ### Ghi chú bảo mật
 
 - Secrets (`JWT_SECRET`...) chỉ tồn tại trong memory container.
