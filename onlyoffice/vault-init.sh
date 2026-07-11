@@ -41,7 +41,7 @@ path = '/etc/onlyoffice/documentserver-example/local.json'
 with open(path) as f:
     cfg = json.load(f)
 cfg.setdefault('server', {})
-cfg['server']['token'] = {'enable': True, 'secret': os.environ['JWT_SECRET'], 'authorizationHeader': 'Authorization'}
+cfg['server']['token'] = {'enable': os.environ.get('JWT_ENABLED', 'false') == 'true', 'secret': os.environ['JWT_SECRET'], 'authorizationHeader': os.environ.get('JWT_HEADER', 'Authorization')}
 cfg['server']['siteUrl'] = 'http://documentserver/'
 with open(path, 'w') as f:
     json.dump(cfg, f, indent=2)
