@@ -29,11 +29,17 @@ for k, v in r['data']['data'].items():
 
 echo "[vault-init] Secrets loaded from Vault"
 
+# Patch example JWT config after it's generated (OnlyOffice always writes enable: false)
+(EX_CFG="/etc/onlyoffice/documentserver-example/local.json"
+ until [ -f "$EX_CFG" ]; do sleep 2; done
+ sed -i 's/"enable": false/"enable": true/' "$EX_CFG"
+ echo "[vault-init] Patched example JWT config") &
+
 # Start ds:example after docservice is ready (only if EXAMPLE_ENABLED=true)
 if [ "${EXAMPLE_ENABLED:-false}" = "true" ]; then
   echo "[vault-init] EXAMPLE_ENABLED=true, waiting for ds:docservice..."
   (until supervisorctl status ds:docservice 2>/dev/null | grep -q RUNNING; do sleep 5; done
-   supervisorctl start ds:example
+   supervisorctl restart ds:example
    echo "[vault-init] ds:example started") &
 else
   echo "[vault-init] EXAMPLE_ENABLED=false, skipping ds:example"

@@ -1,6 +1,6 @@
 services:
   onlyoffice:
-    image: onlyoffice/documentserver:latest
+    image: onlyoffice/documentserver:9.4
     container_name: zhizhu-onlyoffice
     restart: unless-stopped
     entrypoint: ["/bin/bash", "/vault-init.sh"]
