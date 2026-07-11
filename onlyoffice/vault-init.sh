@@ -28,6 +28,8 @@ for k, v in r['data']['data'].items():
 " <<< "$RESPONSE") || { echo "[vault-init] Failed to parse Vault response" >&2; exit 1; }
 
 echo "[vault-init] Secrets loaded from Vault"
+echo "[vault-init] JWT_ENABLED=${JWT_ENABLED:-not set}"
+echo "[vault-init] EXAMPLE_ENABLED=${EXAMPLE_ENABLED:-not set}"
 
 # Start ds:example after docservice is ready (only if EXAMPLE_ENABLED=true)
 if [ "${EXAMPLE_ENABLED:-false}" = "true" ]; then
