@@ -1,122 +1,93 @@
-# Hướng dẫn xây dựng OnlyOffice Document Server để View File
+# OnlyOffice Document Server
 
-## 1. Tổng quan
+## Deploy
 
-**OnlyOffice Document Server** là một dịch vụ độc lập (chạy bằng Docker) cho phép:
-- Xem (view) file Word, Excel, PowerPoint, PDF... ngay trên trình duyệt
-- Chỉnh sửa trực tuyến (nếu cần, có thể tắt để chỉ dùng chế độ view)
-- Tích hợp vào bất kỳ hệ thống web nào (CMS, quản lý tài liệu, ERP...) thông qua một đoạn JavaScript nhúng (config.js)
+### Yêu cầu
 
-Kiến trúc tổng quát:
+- Docker + Docker Compose, `jq` trên host
+- Vault đang chạy và có secret tại `secret/onlyoffice`
 
-```
-Người dùng (trình duyệt)
-        │
-        ▼
-  Ứng dụng của bạn (Web App / Backend)
-        │  (sinh config, JWT token, URL file)
-        ▼
-  OnlyOffice Document Server (Docker container)
-        │
-        ▼
-  Storage lưu file (local disk / S3 / server riêng)
-```
-
-Ứng dụng của bạn **không nhúng file trực tiếp**, mà:
-1. Cung cấp URL để Document Server tải file về (file phải truy cập được qua HTTP/HTTPS từ container)
-2. Document Server render ra và trả về iframe hiển thị cho người dùng
-
----
-
-## 2. Yêu cầu hệ thống
-
-| Thành phần | Tối thiểu | Khuyến nghị |
-|---|---|---|
-| CPU | 2 core | 4 core |
-| RAM | 4 GB | 8 GB+ |
-| Ổ đĩa | 40 GB | 100 GB+ (SSD) |
-| OS | Linux (Ubuntu/CentOS) | Ubuntu 22.04 LTS |
-| Docker | 20.x+ | Bản mới nhất |
-| Domain + SSL | Có (khuyến nghị bắt buộc cho production) | Let's Encrypt |
-
----
-
-## 3. Cài đặt bằng Docker (cách khuyến nghị)
-
-### 3.1. Cài Docker (nếu chưa có)
+### Cấu trúc secret trong Vault
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-sudo systemctl enable --now docker
-```
-
-### 3.2. Deploy bằng Docker Compose + Vault
-
-Project này dùng `docker-compose.yml` kết hợp script `up.sh` để kéo secrets từ Vault rồi mới chạy container — không lưu secret trực tiếp trong file.
-
-**Bước 1 — Chuẩn bị Vault:**
-
-Lưu secrets vào Vault tại path `secret/zhizhu/onlyoffice`:
-
-```bash
-vault kv put secret/zhizhu/onlyoffice \
-  ONLYOFFICE_PORT=8090 \
+vault kv put secret/onlyoffice \
+  JWT_ENABLED=true \
+  JWT_HEADER=Authorization \
   JWT_SECRET=$(openssl rand -hex 32)
 ```
 
-**Bước 2 — Cấu hình Vault connection:**
+### Lần đầu
 
 ```bash
 cd /opt/zhizhu/onlyoffice
-cp .vault.json.example .vault.json
-# Sửa "addr" nếu Vault chạy ở địa chỉ khác
-```
-
-Nội dung `.vault.json`:
-
-```json
-{
-  "addr": "http://127.0.0.1:8200",
-  "kv": 2,
-  "envs": {
-    "production": "secret/zhizhu/onlyoffice"
-  }
-}
-```
-
-**Bước 3 — Chạy:**
-
-```bash
+cp .vault.json.example .vault.json   # sửa "addr" thành địa chỉ Vault
 bash up.sh
 # → chọn login method (Token / Userpass / LDAP)
 # → nhập credentials
-# → secrets tự ghi vào .env
 # → docker compose pull && docker compose up -d
 ```
 
-**Giải thích các biến quan trọng:**
+### Cách hoạt động
 
-- `JWT_ENABLED=true`: bật xác thực bằng JWT — **bắt buộc** nếu server public ra internet, tránh bị lợi dụng để render file tuỳ ý.
-- `JWT_SECRET`: chuỗi bí mật dùng để ký token, phải trùng với secret dùng ở phía ứng dụng backend. Lưu trong Vault, không hardcode.
-- `ONLYOFFICE_PORT`: port lắng nghe trên host, chỉ bind `127.0.0.1` — traffic vào qua Cloudflare Tunnel.
-
-### 3.3. Kiểm tra hoạt động
-
-```bash
-docker ps
-curl http://localhost:8090/healthcheck
-# Kết quả mong đợi: true
-```
-
-Trang test tích hợp (upload & xem file trực tiếp, không cần frontend):
+`up.sh` chỉ lấy Vault token rồi truyền vào container. Container tự fetch secrets từ Vault mỗi lần start thông qua `vault-init.sh` (entrypoint wrapper) — secrets không bao giờ ghi ra disk.
 
 ```text
-http://localhost:8090/example/
+up.sh  →  lấy VAULT_TOKEN  →  docker compose up
+                                    │
+                              vault-init.sh (trong container)
+                                    │  fetch Vault bằng VAULT_TOKEN
+                                    │  export JWT_SECRET... vào memory
+                                    └─ exec OnlyOffice
 ```
+
+### Restart / sau server reboot
+
+```bash
+docker compose up -d
+```
+
+Không cần chạy `up.sh` lại — `VAULT_TOKEN` đã được bake vào Docker container config từ lần deploy đầu, container tự dùng để fetch secrets từ Vault mỗi lần khởi động.
+
+### Redeploy / cập nhật secrets
+
+```bash
+bash up.sh
+```
+
+### Kiểm tra
+
+```bash
+docker logs zhizhu-onlyoffice -n 50
+curl http://localhost:8090/healthcheck   # kết quả mong đợi: true
+```
+
+### Ghi chú bảo mật
+
+- Secrets (`JWT_SECRET`...) chỉ tồn tại trong memory container.
+- `VAULT_TOKEN` lưu trong Docker container config — nếu bị lộ, revoke trong Vault là vô hiệu hóa ngay.
 
 ---
 
-## 4. Cấu hình Nginx Reverse Proxy + SSL
+## Tích hợp
+
+### Tổng quan
+
+**OnlyOffice Document Server** là dịch vụ Docker cho phép xem/chỉnh sửa Word, Excel, PowerPoint, PDF... trên trình duyệt, tích hợp qua JavaScript.
+
+```text
+Người dùng (trình duyệt)
+        │
+        ▼
+  Backend (sinh config + ký JWT)
+        │
+        ▼
+  OnlyOffice Document Server
+        │
+        ▼
+  Storage (URL file)
+```
+
+## Cấu hình Nginx Reverse Proxy + SSL
 
 Để chạy production an toàn, nên đặt Nginx phía trước container, dùng HTTPS.
 

@@ -3,13 +3,16 @@ services:
     image: onlyoffice/documentserver:latest
     container_name: zhizhu-onlyoffice
     restart: unless-stopped
+    entrypoint: ["/bin/bash", "/vault-init.sh"]
+    command: ["/app/ds/run-document-server.sh"]
     environment:
-      JWT_ENABLED: ${JWT_ENABLED:-true}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_HEADER: ${JWT_HEADER:-Authorization}
+      VAULT_ADDR: ${VAULT_ADDR}
+      VAULT_TOKEN: ${VAULT_TOKEN}
+      VAULT_SECRET_PATH: secret/onlyoffice
     ports:
-      - "127.0.0.1:${ONLYOFFICE_PORT:-8090}:80"
+      - "127.0.0.1:8090:80"
     volumes:
+      - ./vault-init.sh:/vault-init.sh:ro
       - onlyoffice_logs:/var/log/onlyoffice
       - onlyoffice_data:/var/www/onlyoffice/Data
       - onlyoffice_lib:/var/lib/onlyoffice
