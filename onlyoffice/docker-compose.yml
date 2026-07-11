@@ -23,6 +23,8 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+    extra_hosts:
+      - "documentserver:127.0.0.1"
     networks:
       - zhizhu_net
 
