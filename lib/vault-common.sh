@@ -106,6 +106,7 @@ write_env() {
       printf "%s\n" "$var"
     done
   } > .env
+  echo -e "${GREEN}✔ .env written to $(pwd)/.env${NC}"
 }
 
 deploy() {

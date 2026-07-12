@@ -16,7 +16,6 @@ export_secrets_to_shell
 echo "[up.sh] Config loaded from Vault"
 
 write_env "VAULT_ADDR=$VAULT_ADDR" "VAULT_TOKEN=$VAULT_TOKEN" "VAULT_SECRET_PATH=$VAULT_SECRET_PATH"
-echo -e "${GREEN}✔ .env written to $(pwd)/.env — subsequent 'docker compose up -d' will work without re-authenticating${NC}"
 
 export VAULT_ADDR VAULT_TOKEN VAULT_SECRET_PATH
 deploy
