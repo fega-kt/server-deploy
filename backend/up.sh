@@ -77,7 +77,13 @@ fi
 
 # ── write .env ────────────────────────────────────────────────────────────────
 
-echo "$DATA" | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
+rm -f .env
+{
+  echo "$DATA" | jq -r 'to_entries[] | "\(.key)=\(.value)"'
+  printf "VAULT_TOKEN=%s\n"              "$VAULT_TOKEN"
+  printf "VAULT_SECRET_PATH_MAPPED=%s\n" "$SECRET_PATH"
+  printf "VAULT_AUTH_METHOD=token\n"
+} > .env
 echo "✔ Secrets written to .env"
 
 # ── deploy ────────────────────────────────────────────────────────────────────

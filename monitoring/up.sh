@@ -75,6 +75,17 @@ done < <(echo "$RESPONSE" | jq -r '.data.data | to_entries[] | "\(.key)=\(.value
 
 echo "[up.sh] Config loaded from Vault"
 
+# ── write .env ────────────────────────────────────────────────────────────────
+
+rm -f .env
+{
+  echo "$RESPONSE" | jq -r '.data.data | to_entries[] | "\(.key)=\(.value)"'
+  printf "VAULT_ADDR=%s\n"        "$VAULT_ADDR"
+  printf "VAULT_TOKEN=%s\n"       "$VAULT_TOKEN"
+  printf "VAULT_SECRET_PATH=%s\n" "$VAULT_SECRET_PATH"
+} > .env
+echo "✔ .env written — subsequent 'docker compose up -d' will work without re-authenticating"
+
 # ── deploy ───────────────────────────────────────────────────────────────────
 
 export VAULT_ADDR VAULT_TOKEN VAULT_SECRET_PATH

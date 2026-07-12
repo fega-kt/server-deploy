@@ -45,6 +45,15 @@ else
   esac
 fi
 
+# ── write .env ────────────────────────────────────────────────────────────────
+
+rm -f .env
+{
+  printf "VAULT_ADDR=%s\n"  "$VAULT_ADDR"
+  printf "VAULT_TOKEN=%s\n" "$VAULT_TOKEN"
+} > .env
+echo "✔ .env written"
+
 # ── deploy (secrets fetched by vault-init.sh inside container) ───────────────
 
 export VAULT_ADDR VAULT_TOKEN
