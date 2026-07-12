@@ -48,6 +48,7 @@ services:
       - /cgroup:/cgroup:ro
     networks:
       - monitoring_internal
+      - zhizhu_net
 
   nginx-exporter-web:
     image: nginx/nginx-prometheus-exporter:latest
@@ -55,16 +56,6 @@ services:
     restart: unless-stopped
     command:
       - --nginx.scrape-uri=http://zhizhu-web:8081/stub_status
-    networks:
-      - zhizhu_net
-      - monitoring_internal
-
-  nginx-exporter-backend:
-    image: nginx/nginx-prometheus-exporter:latest
-    container_name: zhizhu-nginx-exporter-backend
-    restart: unless-stopped
-    command:
-      - --nginx.scrape-uri=http://zhizhu-backend-proxy:80/stub_status
     networks:
       - zhizhu_net
       - monitoring_internal

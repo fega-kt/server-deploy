@@ -7,21 +7,10 @@ services:
       VAULT_TOKEN: ${VAULT_TOKEN}
       VAULT_SECRET_PATH_MAPPED: ${VAULT_SECRET_PATH_MAPPED}
       VAULT_AUTH_METHOD: ${VAULT_AUTH_METHOD}
-    networks:
-      - zhizhu_net
-
-  backend-proxy:
-    image: nginx:alpine
-    container_name: zhizhu-backend-proxy
-    restart: unless-stopped
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "127.0.0.1:${APP_PORT:-3000}:80"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     networks:
       - zhizhu_net
-    depends_on:
-      - backend
 
 networks:
   zhizhu_net:
