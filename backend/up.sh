@@ -2,91 +2,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-if [ ! -f .vault.json ]; then
-  echo "Error: .vault.json not found. Copy .vault.json.example and fill in your values." >&2
-  exit 1
-fi
+source "../lib/vault-common.sh"
 
-VAULT_ADDR=$(jq -r '.addr // empty' .vault.json)
+check_vault_json
+read_vault_addr
+
 SECRET_PATH=$(jq -r '.envs.production // empty' .vault.json)
 KV=$(jq -r '.kv // 2' .vault.json)
+[ -z "$SECRET_PATH" ] && { echo -e "${RED}[up.sh] Secret path is required. Set \"envs.production\" in .vault.json.${NC}" >&2; exit 1; }
 
-if [ -z "$VAULT_ADDR" ]; then
-  echo '[up.sh] Vault address is required. Set "addr" in .vault.json.' >&2
-  exit 1
-fi
-if [ -z "$SECRET_PATH" ]; then
-  echo '[up.sh] Secret path is required. Set "envs.production" in .vault.json.' >&2
-  exit 1
-fi
+vault_login
+fetch_secrets "$SECRET_PATH" "$KV"
 
-# ── auth method ──────────────────────────────────────────────────────────────
-
-echo ""
-echo "? Which login method?"
-PS3="> "
-select METHOD in "Token" "Userpass" "LDAP"; do
-  [ -n "$METHOD" ] && break
-done
-
-case $METHOD in
-  Token)
-    read -rsp "? Vault token: " VAULT_TOKEN; echo
-    ;;
-  Userpass)
-    read -rp  "? Username: "   USERNAME
-    read -rsp "? Password: "   PASSWORD; echo
-    VAULT_TOKEN=$(curl -sf "${VAULT_ADDR}/v1/auth/userpass/login/${USERNAME}" \
-      -d "{\"password\":\"${PASSWORD}\"}" | jq -r '.auth.client_token')
-    ;;
-  LDAP)
-    read -rp  "? LDAP username: " USERNAME
-    read -rsp "? LDAP password: " PASSWORD; echo
-    VAULT_TOKEN=$(curl -sf "${VAULT_ADDR}/v1/auth/ldap/login/${USERNAME}" \
-      -d "{\"password\":\"${PASSWORD}\"}" | jq -r '.auth.client_token')
-    ;;
-esac
-
-# ── fetch secrets ─────────────────────────────────────────────────────────────
-
-MOUNT=$(echo "$SECRET_PATH" | cut -d/ -f1)
-REST=$(echo "$SECRET_PATH"  | cut -d/ -f2-)
-if [ "$KV" -eq 2 ]; then
-  API_PATH="${MOUNT}/data/${REST}"
-else
-  API_PATH="${SECRET_PATH}"
-fi
-
-RESPONSE=$(curl -sf "${VAULT_ADDR}/v1/${API_PATH}" \
-  -H "X-Vault-Token: ${VAULT_TOKEN}" || {
-    echo "[up.sh] Failed to fetch secrets from Vault at ${VAULT_ADDR}/v1/${API_PATH}" >&2
-    echo "[up.sh] Check: Vault token valid? Secret path correct? Vault reachable?" >&2
-    exit 1
-  })
-
-if [ "$KV" -eq 2 ]; then
-  DATA=$(echo "$RESPONSE" | jq -r '.data.data')
-else
-  DATA=$(echo "$RESPONSE" | jq -r '.data')
-fi
-
-if [ -z "$DATA" ] || [ "$DATA" = "null" ]; then
-  echo "[up.sh] Secret not found at path: ${API_PATH}" >&2
-  exit 1
-fi
-
-# ── write .env ────────────────────────────────────────────────────────────────
-
-rm -f .env
-{
-  echo "$DATA" | jq -r 'to_entries[] | "\(.key)=\(.value)"'
-  printf "VAULT_TOKEN=%s\n"              "$VAULT_TOKEN"
-  printf "VAULT_SECRET_PATH_MAPPED=%s\n" "$SECRET_PATH"
-  printf "VAULT_AUTH_METHOD=token\n"
-} > .env
-echo "✔ Secrets written to .env"
-
-# ── deploy ────────────────────────────────────────────────────────────────────
-
-docker compose pull
-docker compose up -d
+write_env "VAULT_TOKEN=$VAULT_TOKEN" "VAULT_SECRET_PATH_MAPPED=$SECRET_PATH" "VAULT_AUTH_METHOD=token"
+echo -e "${GREEN}✔ Secrets written to .env${NC}"
+deploy
