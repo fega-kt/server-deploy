@@ -15,5 +15,5 @@ vault_login
 fetch_secrets "$SECRET_PATH" "$KV"
 
 write_env "VAULT_TOKEN=$VAULT_TOKEN" "VAULT_SECRET_PATH_MAPPED=$SECRET_PATH" "VAULT_AUTH_METHOD=token"
-echo -e "${GREEN}✔ Secrets written to .env${NC}"
+echo -e "${GREEN}✔ Secrets written to $(pwd)/.env${NC}"
 deploy
