@@ -253,7 +253,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_requests_total{job=\"zhizhu-backend\", status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"zhizhu-backend\"}[5m]))",
+          "expr": "(sum(rate(http_requests_total{job=\"zhizhu-backend\", status_code=~\"5..\"}[5m])) or vector(0)) / sum(rate(http_requests_total{job=\"zhizhu-backend\"}[5m]))",
           "refId": "A"
         }
       ]
