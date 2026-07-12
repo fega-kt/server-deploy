@@ -19,3 +19,11 @@ scrape_configs:
     static_configs:
       - targets: ["zhizhu-backend:3000"]
     metrics_path: /metrics
+
+  - job_name: "zhizhu-web"
+    static_configs:
+      - targets: ["nginx-exporter-web:9113"]
+
+  - job_name: "zhizhu-backend-proxy"
+    static_configs:
+      - targets: ["nginx-exporter-backend:9113"]
