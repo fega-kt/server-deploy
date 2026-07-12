@@ -15,6 +15,7 @@ services:
       - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     networks:
       - monitoring_internal
+      - zhizhu_net
 
   node-exporter:
     image: prom/node-exporter:latest
@@ -48,7 +49,6 @@ services:
       - /cgroup:/cgroup:ro
     networks:
       - monitoring_internal
-      - zhizhu_net
 
   nginx-exporter-web:
     image: nginx/nginx-prometheus-exporter:latest
