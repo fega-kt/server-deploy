@@ -14,7 +14,7 @@ route:
 
 receivers:
   - name: "default"
-    # Không gửi gì — chỉ hiện trong Prometheus/Alertmanager UI
+    # No-op receiver — alerts visible in Alertmanager UI only
 
   - name: "critical"
     # --- OPTION 1: Email ---
