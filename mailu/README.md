@@ -53,46 +53,56 @@ Script sẽ:
 
 ## Biến môi trường (`.env`)
 
-| Biến                  | Mô tả                                              |
-| --------------------- | -------------------------------------------------- |
+| Biến                  | Mô tả                                                    |
+| --------------------- | -------------------------------------------------------- |
 | `SECRET_KEY`          | Session encryption key — tạo bằng `openssl rand -hex 16` |
-| `SUBNET`              | Subnet Docker nội bộ (`192.168.203.0/24`)          |
-| `DOMAIN`              | Domain mail chính (`zhizhu.online`)                |
-| `HOSTNAMES`           | FQDN mail server (`mail.zhizhu.online`)            |
-| `POSTMASTER`          | Local part của postmaster (`admin`)                |
-| `TLS_FLAVOR`          | Cách quản lý TLS — xem phần bên dưới              |
-| `ADMIN`               | Bật admin UI (`true`)                              |
-| `WEB_ADMIN`           | Path admin UI (`/admin`)                           |
-| `WEB_WEBMAIL`         | Path webmail (`/webmail`)                          |
-| `AUTH_RATELIMIT_IP`   | Giới hạn login theo IP (`60/hour`)                 |
-| `AUTH_RATELIMIT_USER` | Giới hạn login theo user (`100/day`)               |
-| `ANTIVIRUS`           | Backend antivirus (`none`)                         |
-| `LOG_LEVEL`           | Log level (`WARNING`)                              |
-| `DISABLE_STATISTICS`  | Tắt gửi stats về Mailu (`True`)                    |
+| `SUBNET`              | Subnet Docker nội bộ (`192.168.203.0/24`)                |
+| `DOMAIN`              | Domain mail chính (`zhizhu.online`)                      |
+| `HOSTNAMES`           | FQDN mail server (`mail.zhizhu.online`)                  |
+| `POSTMASTER`          | Local part của postmaster (`admin`)                      |
+| `TLS_FLAVOR`          | Cách quản lý TLS — xem phần bên dưới                     |
+| `ADMIN`               | Bật admin UI (`true`)                                    |
+| `WEB_ADMIN`           | Path admin UI (`/admin`)                                 |
+| `WEB_WEBMAIL`         | Path webmail (`/webmail`)                                |
+| `WEBMAIL`             | Webmail client: `roundcube` hoặc `snappymail`            |
+| `AUTH_RATELIMIT_IP`   | Giới hạn login theo IP (`60/hour`)                       |
+| `AUTH_RATELIMIT_USER` | Giới hạn login theo user (`100/day`)                     |
+| `ANTIVIRUS`           | Backend antivirus (`none`)                               |
+| `RELAYHOST`           | SMTP relay outbound (`smtp.sendgrid.net:587`)            |
+| `RELAYHOST_USERNAME`  | Username relay — SendGrid dùng `apikey`                  |
+| `RELAYHOST_PASSWORD`  | Password relay — SendGrid API key                        |
+| `LOG_LEVEL`           | Log level (`WARNING`)                                    |
+| `DISABLE_STATISTICS`  | Tắt gửi stats về Mailu (`True`)                          |
 
 ## TLS
 
 `TLS_FLAVOR=cert` — cung cấp cert thủ công qua acme.sh + Cloudflare DNS-01:
 
 ```bash
-# Cài acme.sh (một lần)
+# Bước 1 — Cài acme.sh
 curl https://get.acme.sh | sh
+source ~/.bashrc
 
-# Cấp cert qua DNS-01 (không cần mở port 80)
+# Bước 2 — Chuyển sang Let's Encrypt (acme.sh mặc định ZeroSSL, cần email)
+acme.sh --set-default-ca --server letsencrypt
+
+# Bước 3 — Cấp cert qua Cloudflare DNS-01 (không cần mở port 80)
+# CF_Token: Cloudflare Dashboard → My Profile → API Tokens → Create Token → template "Edit zone DNS"
 CF_Token="<cloudflare_api_token>" \
   acme.sh --issue -d mail.zhizhu.online --dns dns_cf
 
-# Tìm mountpoint volume mailu_certs
+# Bước 4 — Copy cert vào volume Mailu
+# (dùng sudo vì volume thuộc sở hữu root)
 CERT_MOUNT=$(docker volume inspect mailu_mailu_certs --format '{{.Mountpoint}}')
+sudo cp ~/.acme.sh/mail.zhizhu.online_ecc/fullchain.cer "$CERT_MOUNT/cert.pem"
+sudo cp ~/.acme.sh/mail.zhizhu.online_ecc/mail.zhizhu.online.key "$CERT_MOUNT/key.pem"
 
-# Copy cert và thiết lập auto-renew
-acme.sh --install-cert -d mail.zhizhu.online \
-  --fullchain-file "$CERT_MOUNT/cert.pem" \
-  --key-file       "$CERT_MOUNT/key.pem" \
-  --reloadcmd      "docker compose -f /opt/zhizhu/mailu/docker-compose.yml restart front"
+# Bước 5 — Restart front để load cert
+docker compose restart front
 ```
 
-acme.sh tự renew mỗi 60 ngày và restart `front` để load cert mới.
+acme.sh tự renew mỗi 60 ngày. Sau mỗi lần renew cần chạy lại bước 4 và 5,
+hoặc set cron: `0 0 * * * sudo cp ~/.acme.sh/mail.zhizhu.online_ecc/fullchain.cer <CERT_MOUNT>/cert.pem && ...`
 
 ## Cloudflare Tunnel
 
