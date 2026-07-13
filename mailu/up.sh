@@ -4,26 +4,17 @@ export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 cd "$(dirname "$0")"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
+source "../lib/vault-common.sh"
 
-if [ ! -f mailu.env ]; then
-  echo -e "${RED}✗ mailu.env không tồn tại. Copy mailu.env.example và điền giá trị.${NC}" >&2
-  exit 1
-fi
+check_vault_json
+read_vault_addr
 
-echo -e "${GREEN}→ Pull images mới nhất...${NC}"
-docker compose pull
+SECRET_PATH=$(jq -r '.envs.production // empty' .vault.json)
+KV=$(jq -r '.kv // 2' .vault.json)
+[ -z "$SECRET_PATH" ] && { echo -e "${RED}[up.sh] Secret path is required. Set \"envs.production\" in .vault.json.${NC}" >&2; exit 1; }
 
-echo -e "${GREEN}→ Khởi động Mailu...${NC}"
-docker compose up -d --force-recreate
+vault_login
+fetch_secrets "$SECRET_PATH" "$KV"
 
-echo ""
-echo -e "${GREEN}✔ Mailu đang chạy.${NC}"
-echo ""
-echo "  Web UI:   http://127.0.0.1/admin  (qua Cloudflare Tunnel → mail.zhizhu.online/admin)"
-echo "  Webmail:  http://127.0.0.1/webmail"
-echo ""
-echo "  Logs:     docker compose logs -f"
-echo "  Status:   docker compose ps"
+write_env
+deploy

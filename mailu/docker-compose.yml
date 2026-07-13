@@ -2,7 +2,7 @@ services:
   front:
     image: ghcr.io/mailu/nginx:2024.06
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     ports:
       - "127.0.0.1:80:80"    # HTTP  → Cloudflare Tunnel
       - "127.0.0.1:443:443"  # HTTPS → Cloudflare Tunnel
@@ -24,7 +24,7 @@ services:
   resolver:
     image: ghcr.io/mailu/unbound:2024.06
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     networks:
       default:
         ipv4_address: 192.168.203.254
@@ -32,7 +32,7 @@ services:
   admin:
     image: ghcr.io/mailu/admin:2024.06
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     volumes:
       - mailu_data:/data
       - mailu_dkim:/dkim
@@ -45,7 +45,7 @@ services:
   imap:
     image: ghcr.io/mailu/dovecot:2024.06
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     volumes:
       - mailu_mail:/mail
       - mailu_overrides_dovecot:/overrides:ro
@@ -58,7 +58,7 @@ services:
   smtp:
     image: ghcr.io/mailu/postfix:2024.06
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     volumes:
       - mailu_mailqueue:/queue
       - mailu_overrides_postfix:/overrides:ro
@@ -72,7 +72,7 @@ services:
     image: ghcr.io/mailu/rspamd:2024.06
     hostname: antispam
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     volumes:
       - mailu_filter:/var/lib/rspamd
       - mailu_overrides_rspamd:/overrides:ro
@@ -83,21 +83,10 @@ services:
     dns:
       - 192.168.203.254
 
-  antivirus:
-    image: ghcr.io/mailu/clamav:2024.06
-    restart: unless-stopped
-    env_file: mailu.env
-    volumes:
-      - mailu_filter:/data
-    depends_on:
-      - resolver
-    dns:
-      - 192.168.203.254
-
   webmail:
     image: ghcr.io/mailu/webmail:2024.06
     restart: unless-stopped
-    env_file: mailu.env
+    env_file: .env
     volumes:
       - mailu_webmail:/data
     depends_on:
