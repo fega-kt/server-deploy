@@ -1,0 +1,137 @@
+services:
+  front:
+    image: ghcr.io/mailu/nginx:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    ports:
+      - "127.0.0.1:80:80"    # HTTP  → Cloudflare Tunnel
+      - "127.0.0.1:443:443"  # HTTPS → Cloudflare Tunnel
+      - "0.0.0.0:25:25"      # SMTP  (direct)
+      - "0.0.0.0:465:465"    # SMTPS (direct)
+      - "0.0.0.0:587:587"    # Submission (direct)
+      - "0.0.0.0:110:110"    # POP3  (direct)
+      - "0.0.0.0:995:995"    # POP3S (direct)
+      - "0.0.0.0:143:143"    # IMAP  (direct)
+      - "0.0.0.0:993:993"    # IMAPS (direct)
+    volumes:
+      - mailu_certs:/certs
+      - mailu_overrides_nginx:/overrides:ro
+    depends_on:
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  resolver:
+    image: ghcr.io/mailu/unbound:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    networks:
+      default:
+        ipv4_address: 192.168.203.254
+
+  admin:
+    image: ghcr.io/mailu/admin:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - mailu_data:/data
+      - mailu_dkim:/dkim
+    depends_on:
+      - redis
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  imap:
+    image: ghcr.io/mailu/dovecot:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - mailu_mail:/mail
+      - mailu_overrides_dovecot:/overrides:ro
+    depends_on:
+      - front
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  smtp:
+    image: ghcr.io/mailu/postfix:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - mailu_mailqueue:/queue
+      - mailu_overrides_postfix:/overrides:ro
+    depends_on:
+      - front
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  antispam:
+    image: ghcr.io/mailu/rspamd:2024.06
+    hostname: antispam
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - mailu_filter:/var/lib/rspamd
+      - mailu_overrides_rspamd:/overrides:ro
+    depends_on:
+      - front
+      - redis
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  antivirus:
+    image: ghcr.io/mailu/clamav:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - mailu_filter:/data
+    depends_on:
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  webmail:
+    image: ghcr.io/mailu/roundcube:2024.06
+    restart: unless-stopped
+    env_file: mailu.env
+    volumes:
+      - mailu_webmail:/data
+    depends_on:
+      - imap
+      - resolver
+    dns:
+      - 192.168.203.254
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - mailu_redis:/data
+    dns:
+      - 192.168.203.254
+
+volumes:
+  mailu_certs:
+  mailu_data:
+  mailu_dkim:
+  mailu_mail:
+  mailu_mailqueue:
+  mailu_filter:
+  mailu_webmail:
+  mailu_redis:
+  mailu_overrides_nginx:
+  mailu_overrides_dovecot:
+  mailu_overrides_postfix:
+  mailu_overrides_rspamd:
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.203.0/24
