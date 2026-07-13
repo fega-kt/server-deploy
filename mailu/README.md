@@ -1,79 +1,98 @@
 # Mailu
 
-Mail server (Postfix + Dovecot + Rspamd + ClamAV + Roundcube), ~7 containers.
+Mail server (Postfix + Dovecot + Rspamd + Roundcube), 7 containers.
 
 Web UI và webmail expose qua Cloudflare Tunnel. Mail ports tiếp nhận trực tiếp từ internet.
+Secrets được lấy từ HashiCorp Vault thay vì chỉnh `.env` tay.
 
 ## Cổng
 
-| Cổng | Giao thức    | Binding   | Expose qua        |
-| ---- | ------------ | --------- | ----------------- |
-| 80   | HTTP         | 127.0.0.1 | Cloudflare Tunnel |
-| 443  | HTTPS        | 127.0.0.1 | Cloudflare Tunnel |
-| 25   | SMTP         | 0.0.0.0   | Trực tiếp         |
-| 465  | SMTPS        | 0.0.0.0   | Trực tiếp         |
-| 587  | Submission   | 0.0.0.0   | Trực tiếp         |
-| 143  | IMAP         | 0.0.0.0   | Trực tiếp         |
-| 993  | IMAPS        | 0.0.0.0   | Trực tiếp         |
-| 110  | POP3         | 0.0.0.0   | Trực tiếp         |
-| 995  | POP3S        | 0.0.0.0   | Trực tiếp         |
+| Cổng | Giao thức  | Binding   | Expose qua        |
+| ---- | ---------- | --------- | ----------------- |
+| 80   | HTTP       | 127.0.0.1 | Cloudflare Tunnel |
+| 443  | HTTPS      | 127.0.0.1 | Cloudflare Tunnel |
+| 25   | SMTP       | 0.0.0.0   | Trực tiếp         |
+| 465  | SMTPS      | 0.0.0.0   | Trực tiếp         |
+| 587  | Submission | 0.0.0.0   | Trực tiếp         |
+| 143  | IMAP       | 0.0.0.0   | Trực tiếp         |
+| 993  | IMAPS      | 0.0.0.0   | Trực tiếp         |
+| 110  | POP3       | 0.0.0.0   | Trực tiếp         |
+| 995  | POP3S      | 0.0.0.0   | Trực tiếp         |
 
 ## Lần đầu cài đặt
 
 ```bash
-cd /opt/zhizhu/mailu
-
-# 1. Tạo config
-cp mailu.env.example mailu.env
-nano mailu.env          # điền SECRET_KEY, DOMAIN, HOSTNAMES
-
-# 2. Khởi động
-bash up.sh
+cp .vault.json.example .vault.json
+nano .vault.json   # điền addr Vault và đường dẫn secret
 ```
 
-### Tạo SECRET_KEY
+Cấu trúc `.vault.json`:
+
+```json
+{
+  "addr": "http://127.0.0.1:8200",
+  "kv": 2,
+  "envs": {
+    "production": "secret/mailu"
+  }
+}
+```
+
+Lưu tất cả key trong `.env.example` vào Vault tại `secret/mailu`, sau đó:
 
 ```bash
-openssl rand -hex 16
+bash up.sh
 ```
 
-## TLS / Let's Encrypt
+Script sẽ:
 
-Vì `front` bind HTTP vào `127.0.0.1`, HTTP-01 challenge không tiếp cận được từ internet.
+1. Hỏi auth method: **Token**, **Userpass**, hoặc **LDAP**
+2. Xác thực với Vault và fetch secrets mới nhất → ghi vào `.env`
+3. Pull image mới từ registry
+4. Recreate container với image và env mới
 
-**Cách A — Tạm mở port 80 khi cấp cert lần đầu:**
+## Biến môi trường (`.env`)
+
+| Biến                  | Mô tả                                              |
+| --------------------- | -------------------------------------------------- |
+| `SECRET_KEY`          | Session encryption key — tạo bằng `openssl rand -hex 16` |
+| `SUBNET`              | Subnet Docker nội bộ (`192.168.203.0/24`)          |
+| `DOMAIN`              | Domain mail chính (`zhizhu.online`)                |
+| `HOSTNAMES`           | FQDN mail server (`mail.zhizhu.online`)            |
+| `POSTMASTER`          | Local part của postmaster (`admin`)                |
+| `TLS_FLAVOR`          | Cách quản lý TLS — xem phần bên dưới              |
+| `ADMIN`               | Bật admin UI (`true`)                              |
+| `WEB_ADMIN`           | Path admin UI (`/admin`)                           |
+| `WEB_WEBMAIL`         | Path webmail (`/webmail`)                          |
+| `AUTH_RATELIMIT_IP`   | Giới hạn login theo IP (`60/hour`)                 |
+| `AUTH_RATELIMIT_USER` | Giới hạn login theo user (`100/day`)               |
+| `ANTIVIRUS`           | Backend antivirus (`none`)                         |
+| `LOG_LEVEL`           | Log level (`WARNING`)                              |
+| `DISABLE_STATISTICS`  | Tắt gửi stats về Mailu (`True`)                    |
+
+## TLS
+
+`TLS_FLAVOR=cert` — cung cấp cert thủ công qua acme.sh + Cloudflare DNS-01:
 
 ```bash
-# Đổi sang 0.0.0.0 trong docker-compose.yml tạm thời:
-#   - "0.0.0.0:80:80"
-bash up.sh
-# Chờ cert được cấp (xem log front)
-docker compose logs -f front
+# Cài acme.sh (một lần)
+curl https://get.acme.sh | sh
 
-# Sau khi có cert, đổi lại:
-#   - "127.0.0.1:80:80"
-bash up.sh
+# Cấp cert qua DNS-01 (không cần mở port 80)
+CF_Token="<cloudflare_api_token>" \
+  acme.sh --issue -d mail.zhizhu.online --dns dns_cf
+
+# Tìm mountpoint volume mailu_certs
+CERT_MOUNT=$(docker volume inspect mailu_mailu_certs --format '{{.Mountpoint}}')
+
+# Copy cert và thiết lập auto-renew
+acme.sh --install-cert -d mail.zhizhu.online \
+  --fullchain-file "$CERT_MOUNT/cert.pem" \
+  --key-file       "$CERT_MOUNT/key.pem" \
+  --reloadcmd      "docker compose -f /opt/zhizhu/mailu/docker-compose.yml restart front"
 ```
 
-**Cách B — Cert thủ công (acme.sh + Cloudflare DNS-01):**
-
-```bash
-# Cấp cert qua DNS challenge
-CF_Token="<cloudflare_api_token>" acme.sh --issue \
-  -d mail.zhizhu.online --dns dns_cf
-
-# Copy vào volume mailu_certs
-# Tìm mountpoint:
-docker volume inspect mailu_mailu_certs
-
-# Copy cert + key
-cp /path/to/fullchain.pem <mountpoint>/cert.pem
-cp /path/to/key.pem       <mountpoint>/key.pem
-
-# Dùng TLS_FLAVOR=cert trong mailu.env
-sed -i 's/^TLS_FLAVOR=.*/TLS_FLAVOR=cert/' mailu.env
-bash up.sh
-```
+acme.sh tự renew mỗi 60 ngày và restart `front` để load cert mới.
 
 ## Cloudflare Tunnel
 
@@ -94,23 +113,21 @@ Tất cả records bên dưới: **DNS only** (không proxy qua Cloudflare — o
 
 ```
 ; A record
-mail.zhizhu.online.    A    <IP_server>
+mail.zhizhu.online.          A    <IP_server>
+autoconfig.zhizhu.online.    A    <IP_server>
+autodiscover.zhizhu.online.  A    <IP_server>
 
 ; MX
-zhizhu.online.         MX   10   mail.zhizhu.online.
+zhizhu.online.               MX   10   mail.zhizhu.online.
 
 ; SPF
-zhizhu.online.         TXT  "v=spf1 mx ~all"
+zhizhu.online.               TXT  "v=spf1 mx ~all"
 
-; DKIM — lấy sau khi Mailu chạy (xem phần dưới)
+; DKIM — lấy sau khi Mailu chạy (xem phần Lấy DKIM key)
 mailu._domainkey.zhizhu.online.  TXT  "v=DKIM1; k=rsa; p=..."
 
 ; DMARC
-_dmarc.zhizhu.online.  TXT  "v=DMARC1; p=quarantine; rua=mailto:admin@zhizhu.online"
-
-; Autoconfig (giúp email clients tự cấu hình)
-autoconfig.zhizhu.online.  A    <IP_server>
-autodiscover.zhizhu.online. A   <IP_server>
+_dmarc.zhizhu.online.        TXT  "v=DMARC1; p=quarantine; rua=mailto:admin@zhizhu.online"
 
 ; PTR — cấu hình ở phía nhà cung cấp VPS
 ; <IP_server>  PTR  mail.zhizhu.online.
@@ -134,7 +151,7 @@ docker exec -it mailu-admin-1 cat /dkim/zhizhu.online.dns.txt
 docker exec -it mailu-admin-1 flask mailu admin admin zhizhu.online <password>
 ```
 
-Sau đó đăng nhập tại `https://mail.zhizhu.online/admin`.
+Đăng nhập tại `https://mail.zhizhu.online/admin`.
 
 ## Quản lý
 
@@ -151,7 +168,7 @@ docker compose restart smtp
 docker compose down
 
 # Update
-docker compose pull && docker compose up -d --force-recreate
+bash up.sh
 ```
 
 ## Gửi email từ backend
