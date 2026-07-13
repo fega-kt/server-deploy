@@ -1,0 +1,46 @@
+services:
+  rabbitmq:
+    # -management-alpine: bản Alpine nhẹ, kèm sẵn Management UI plugin
+    # Pin version cụ thể (3.13) — tránh tự động lên major version khi pull lại
+    image: rabbitmq:3.13-management-alpine
+    container_name: zhizhu-rabbitmq
+    # Tự restart nếu crash, trừ khi bị docker compose down tắt thủ công
+    restart: unless-stopped
+    # Đọc biến môi trường từ .env (được up.sh fetch từ Vault và ghi ra)
+    # Chỉ chứa RABBITMQ_DEFAULT_* — không inject Vault token vào container
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:5672:5672"    # AMQP — ứng dụng kết nối
+      - "127.0.0.1:15672:15672"  # Management UI — http://127.0.0.1:15672
+    ulimits:
+      # RabbitMQ mở nhiều file descriptor (1 connection = nhiều fd)
+      # Default Docker limit 1024 sẽ gây lỗi khi có nhiều connections
+      nofile:
+        soft: 65536
+        hard: 65536
+    # Ngăn RabbitMQ ăn hết RAM của host
+    mem_limit: 512m
+    # Giới hạn CPU để không ảnh hưởng các service khác cùng host
+    cpus: 1.0
+    healthcheck:
+      # Ping Erlang node — đơn giản nhất, không cần credentials
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      # Persist messages, queues, exchanges qua restart và down/up
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      # Chung network với backend để kết nối bằng tên container
+      # backend dùng: amqp://user:pass@zhizhu-rabbitmq:5672/
+      - zhizhu_net
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  # Network này được tạo sẵn bên ngoài, dùng chung với backend/redis/web
+  zhizhu_net:
+    external: true
