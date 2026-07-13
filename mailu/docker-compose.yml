@@ -95,7 +95,7 @@ services:
       - 192.168.203.254
 
   webmail:
-    image: ghcr.io/mailu/roundcube:2024.06
+    image: ghcr.io/mailu/webmail:2024.06
     restart: unless-stopped
     env_file: mailu.env
     volumes:
