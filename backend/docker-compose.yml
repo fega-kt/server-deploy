@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: ["node", "dist/main.js"]
+    command: ["node", "dist/apps/core/main.js"]
     ports:
       - "127.0.0.1:${CORE_PORT:-3000}:3000"
     networks:
@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: ["node", "dist/main.js"]
+    command: ["node", "dist/apps/app/main.js"]
     ports:
       - "127.0.0.1:${APP_PORT:-3001}:3000"
     networks:
@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: ["node", "dist/main-jobs.js"]
+    command: ["node", "dist/jobs/core-jobs/main.js"]
     ports:
       - "127.0.0.1:${CORE_JOB_PORT:-3002}:3002"
     networks:
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    command: ["node", "dist/main-jobs.js"]
+    command: ["node", "dist/jobs/app-jobs/main.js"]
     ports:
       - "127.0.0.1:${APP_JOB_PORT:-3003}:3003"
     networks:
