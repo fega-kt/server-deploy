@@ -1,13 +1,49 @@
 services:
-  backend:
-    image: ${APP_IMAGE:-ghcr.io/fega-kt/backend-mikroorm:latest}
-    container_name: zhizhu-backend
+  be-core:
+    image: ${CORE_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-core:latest}
+    container_name: zhizhu-be-core
     restart: unless-stopped
     env_file:
       - .env
     command: ["node", "dist/main.js"]
     ports:
-      - "127.0.0.1:${APP_PORT:-3000}:3000"
+      - "127.0.0.1:${CORE_PORT:-3000}:3000"
+    networks:
+      - zhizhu_net
+
+  be-app:
+    image: ${APP_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-app:latest}
+    container_name: zhizhu-be-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["node", "dist/main.js"]
+    ports:
+      - "127.0.0.1:${APP_PORT:-3001}:3000"
+    networks:
+      - zhizhu_net
+
+  be-core-jobs:
+    image: ${CORE_JOBS_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-core-jobs:latest}
+    container_name: zhizhu-be-core-jobs
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["node", "dist/main-jobs.js"]
+    ports:
+      - "127.0.0.1:${CORE_JOB_PORT:-3002}:3002"
+    networks:
+      - zhizhu_net
+
+  be-app-jobs:
+    image: ${APP_JOBS_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-app-jobs:latest}
+    container_name: zhizhu-be-app-jobs
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["node", "dist/main-jobs.js"]
+    ports:
+      - "127.0.0.1:${APP_JOB_PORT:-3003}:3003"
     networks:
       - zhizhu_net
 
