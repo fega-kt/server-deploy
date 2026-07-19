@@ -7,7 +7,7 @@ services:
       - .env
     command: ["node", "dist/apps/core/main.js"]
     ports:
-      - "127.0.0.1:${CORE_PORT:-3030}:3030"
+      - "127.0.0.1:${CORE_PORT:-2000}:2000"
     networks:
       - zhizhu_net
 
@@ -19,7 +19,7 @@ services:
       - .env
     command: ["node", "dist/apps/app/main.js"]
     ports:
-      - "127.0.0.1:${APP_PORT:-3031}:3031"
+      - "127.0.0.1:${APP_PORT:-2001}:2001"
     networks:
       - zhizhu_net
 
@@ -31,7 +31,7 @@ services:
       - .env
     command: ["node", "dist/jobs/core-jobs/main.js"]
     ports:
-      - "127.0.0.1:${CORE_JOB_PORT:-3032}:3032"
+      - "127.0.0.1:${CORE_JOB_PORT:-2002}:2002"
     networks:
       - zhizhu_net
 
@@ -43,7 +43,7 @@ services:
       - .env
     command: ["node", "dist/jobs/app-jobs/main.js"]
     ports:
-      - "127.0.0.1:${APP_JOB_PORT:-3033}:3033"
+      - "127.0.0.1:${APP_JOB_PORT:-2003}:2003"
     networks:
       - zhizhu_net
 
