@@ -3,11 +3,34 @@ services:
     image: redis:7-alpine
     container_name: zhizhu-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    env_file:
+      - .env
+    command:
+      - sh
+      - -c
+      - |
+        if [ -z "$REDIS_PASSWORD" ]; then
+          echo "[redis] ERROR: REDIS_PASSWORD is required (set it in .env)" >&2
+          exit 1
+        fi
+        if [ -n "$REDIS_USER" ]; then
+          exec redis-server --appendonly yes \
+            --user default off \
+            --user "$REDIS_USER" on ">$REDIS_PASSWORD" "~*" "&*" "+@all"
+        else
+          exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+        fi
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test:
+        - CMD-SHELL
+        - |
+          if [ -n "$REDIS_USER" ]; then
+            redis-cli --user "$REDIS_USER" -a "$REDIS_PASSWORD" ping | grep -q PONG
+          else
+            redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG
+          fi
       interval: 10s
       timeout: 5s
       retries: 5

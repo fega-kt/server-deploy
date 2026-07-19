@@ -36,11 +36,17 @@ docker network create zhizhu_net
 
 ## 3. Chạy Redis
 
+Redis lấy secrets từ HashiCorp Vault thay vì chỉnh `.env` tay:
+
 ```bash
 cd /opt/zhizhu/redis
-cp .env.example .env
-docker compose up -d
+cp .vault.json.example .vault.json
+nano .vault.json   # điền đúng addr và đường dẫn secret
+
+bash up.sh
 ```
+
+> **Lưu ý:** Vault phải đang chạy và đã được unseal trước bước này. Xem [infrastructure/README.md](infrastructure/README.md).
 
 ## 4. Chạy Backend
 
