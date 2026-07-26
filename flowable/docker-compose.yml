@@ -10,7 +10,9 @@ services:
     environment:
       # --- Database (Supabase PostgreSQL) ---
       # URL được ghép từ các biến rời (host/port/dbname) thay vì 1 chuỗi JDBC nguyên khối.
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${SUPABASE_DB_HOST}:${SUPABASE_DB_PORT}/${SUPABASE_DB_NAME}?sslmode=require
+      # prepareThreshold=0 tắt server-side prepared statement của driver — bắt buộc khi đi qua
+      # PgBouncer/Supavisor (kể cả Session mode), tránh lỗi "prepared statement ... already exists".
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${SUPABASE_DB_HOST}:${SUPABASE_DB_PORT}/${SUPABASE_DB_NAME}?sslmode=require&prepareThreshold=0
       SPRING_DATASOURCE_USERNAME: ${SUPABASE_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${SUPABASE_DB_PASSWORD}
 
