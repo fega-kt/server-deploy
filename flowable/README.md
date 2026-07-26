@@ -44,7 +44,8 @@ Script sẽ:
 | ---- | ----- |
 | `APP_IMAGE` | Image GHCR — mặc định `:latest`, override để pin bản `sha-<commit>` |
 | `FLOWABLE_PORT` | Port host bind (mặc định `8082` — `8080` đã dùng bởi `zhizhu-web`, `8081` đã dùng bởi Portainer) |
-| `SUPABASE_DB_HOST` / `SUPABASE_DB_PORT` / `SUPABASE_DB_NAME` / `SUPABASE_DB_USER` / `SUPABASE_DB_PASSWORD` | Kết nối Supabase PostgreSQL (docker-compose tự ghép thành JDBC URL). Nên dùng **direct connection** (`db.[PROJECT_REF].supabase.co:5432`, user `postgres`) chứ không dùng pooler chế độ Transaction (`:6543`) — xem ghi chú trong `.env.example` |
+| `SUPABASE_DB_HOST` / `SUPABASE_DB_PORT` / `SUPABASE_DB_NAME` / `SUPABASE_DB_USER` / `SUPABASE_DB_PASSWORD` | Kết nối Supabase PostgreSQL (docker-compose tự ghép thành JDBC URL). Nên dùng **direct connection** (`db.[PROJECT_REF].supabase.co:5432`, user `postgres`); nếu qua pooler thì dùng port `5432` (Session mode), không dùng `6543` (Transaction mode) — xem ghi chú trong `.env.example` |
+| `FLOWABLE_DB_SCHEMA` | Schema chứa bảng `ACT_*` bên trong `SUPABASE_DB_NAME`. Dùng chung DB với service khác → đặt tên schema riêng (mặc định `flowable`, phải `CREATE SCHEMA` trước). Tách hẳn 1 database riêng cho Flowable → đặt `public` |
 | `FLOWABLE_ADMIN_USER` / `FLOWABLE_ADMIN_PASSWORD` / `FLOWABLE_ADMIN_EMAIL` | Admin dùng để gọi Flowable REST API |
 | `INTERNAL_SERVICE_TOKEN` | Shared secret giữa Flowable và NestJS (header `X-Internal-Auth`) |
 | `NESTJS_INTERNAL_BASE_URL` | **Placeholder** — chưa có service NestJS (approval-app) trong `zhizhu-server-deploy`. Điền URL thật khi service đó được deploy (container name nếu cùng join `zhizhu_net`, hoặc URL external) |

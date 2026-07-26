@@ -15,7 +15,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SUPABASE_DB_PASSWORD}
 
       # --- Flowable schema/config ---
-      FLOWABLE_DATABASE_SCHEMA: flowable
+      # Dùng DB dùng chung (vd SUPABASE_DB_NAME=postgres) → đặt schema riêng (vd "flowable").
+      # Dùng DB tách riêng cho Flowable (vd SUPABASE_DB_NAME=flowable) → đặt schema "public".
+      FLOWABLE_DATABASE_SCHEMA: ${FLOWABLE_DB_SCHEMA:-flowable}
       FLOWABLE_DATABASE_SCHEMA_UPDATE: "true"
 
       # --- Admin user cho Flowable REST API ---
