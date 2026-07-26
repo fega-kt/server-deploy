@@ -61,14 +61,16 @@ flowable.zhizhu.online -> http://127.0.0.1:8082
 ## Kiểm tra
 
 ```bash
-curl -u admin:your-password http://127.0.0.1:8082/flowable-rest/service/repository/deployments
+curl -u admin:your-password http://127.0.0.1:8082/flowable-rest/service/process-api/repository/deployments
 ```
 
-Kết quả mong đợi:
+Kết quả mong đợi (list các deployment, ví dụ auto-deploy `leave-request.bpmn20.xml` lúc start):
 
 ```json
-{ "data": [], "total": 0, "start": 0, "size": 0 }
+{ "data": [...], "total": 1, "start": 0, "size": 1 }
 ```
+
+> Flowable 7 tách REST API theo module (`process-api`, `dmn-api`, `cmmn-api`, `idm-api`...) — không còn dùng path gộp chung `/repository/...` như 6.x. Endpoint nào cũng cần thêm tiền tố tương ứng, ví dụ `/flowable-rest/service/process-api/runtime/process-instances`.
 
 Container có healthcheck tự động gọi endpoint trên mỗi 30 giây (timeout 10s, tối đa 5 lần retry, chờ 90s khởi động).
 
