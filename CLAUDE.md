@@ -23,7 +23,7 @@ Each service is managed independently from its own directory:
 
 ```bash
 # Start
-cd /opt/zhizhu/<service>   # redis | backend | web | Infrastructure
+cd /opt/zhizhu/<service>   # redis | backend | web | flowable | Infrastructure
 cp .env.example .env       # first time only — then edit .env
 docker compose up -d
 
@@ -40,18 +40,20 @@ docker compose down
 
 ## Architecture
 
-```
+```text
 Internet → Cloudflare Tunnel (cloudflared)
-               ├── api.zhizhu.online  → 127.0.0.1:3000  (backend)
-               └── app.zhizhu.online  → 127.0.0.1:8080  (web)
+               ├── api.zhizhu.online       → 127.0.0.1:3000  (backend)
+               ├── app.zhizhu.online       → 127.0.0.1:8080  (web)
+               └── flowable.zhizhu.online  → 127.0.0.1:8081  (flowable)
 
 Host (127.0.0.1 only)
-  :3000  zhizhu-backend  ← reads env from backend/.env, connects to zhizhu-redis via Docker DNS
-  :6379  zhizhu-redis    ← password-protected, AOF persistence on redis_data volume
-  :8080  zhizhu-web      ← static/frontend image
-  :8200  vault           ← HashiCorp Vault, data on vault_data volume
+  :3000  zhizhu-backend   ← reads env from backend/.env, connects to zhizhu-redis via Docker DNS
+  :6379  zhizhu-redis     ← password-protected, AOF persistence on redis_data volume
+  :8080  zhizhu-web       ← static/frontend image
+  :8081  zhizhu-flowable  ← Flowable REST (BPMN engine), image built from separate flowable repo, DB on Supabase
+  :8200  vault            ← HashiCorp Vault, data on vault_data volume
 
-Docker network: zhizhu_net (external, shared by backend / redis / web)
+Docker network: zhizhu_net (external, shared by backend / redis / web / flowable)
 Vault is NOT on zhizhu_net — it runs standalone on Infrastructure/docker-compose.yml
 ```
 

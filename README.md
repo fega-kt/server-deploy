@@ -13,6 +13,9 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
 ├── web
 │   ├── docker-compose.yml
 │   └── .env.example
+├── flowable
+│   ├── docker-compose.yml
+│   └── .env.example
 └── cloudflared
     └── config.example.yml
 ```
@@ -74,7 +77,21 @@ nano .env
 docker compose up -d
 ```
 
-## 6. Kiểm tra
+## 6. Chạy Flowable
+
+Flowable lấy secrets từ HashiCorp Vault thay vì chỉnh `.env` tay (image build từ repo `flowable` riêng):
+
+```bash
+cd /opt/zhizhu/flowable
+cp .vault.json.example .vault.json
+nano .vault.json   # điền đúng addr và đường dẫn secret
+
+bash up.sh
+```
+
+> **Lưu ý:** Vault phải đang chạy và đã được unseal trước bước này. Xem [infrastructure/README.md](infrastructure/README.md).
+
+## 7. Kiểm tra
 
 ```bash
 docker ps
@@ -98,13 +115,20 @@ Logs web:
 docker logs zhizhu-web -n 100
 ```
 
-## 7. Cloudflared
+Logs flowable:
+
+```bash
+docker logs zhizhu-flowable -n 100
+```
+
+## 8. Cloudflared
 
 Ví dụ route:
 
 ```text
 api.zhizhu.online -> http://127.0.0.1:3000
 app.zhizhu.online -> http://127.0.0.1:8080
+flowable.zhizhu.online -> http://127.0.0.1:8081
 ```
 
 Tham khảo file:

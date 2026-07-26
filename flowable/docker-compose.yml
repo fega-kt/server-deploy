@@ -1,0 +1,57 @@
+services:
+  flowable:
+    # Luôn dùng image đã build & push lên GHCR (CI build từ flowable-server/Dockerfile
+    # trong repo flowable riêng). Mặc định là tag :latest production; override qua
+    # APP_IMAGE để deploy bản sha cụ thể.
+    image: ${APP_IMAGE:-ghcr.io/fega-kt/flowable-rest-flowable-server:latest}
+    container_name: zhizhu-flowable
+    restart: unless-stopped
+
+    environment:
+      # --- Database (Supabase PostgreSQL) ---
+      # URL được ghép từ các biến rời (host/port/dbname) thay vì 1 chuỗi JDBC nguyên khối.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${SUPABASE_DB_HOST}:${SUPABASE_DB_PORT}/${SUPABASE_DB_NAME}?sslmode=require
+      SPRING_DATASOURCE_USERNAME: ${SUPABASE_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${SUPABASE_DB_PASSWORD}
+
+      # --- Flowable schema/config ---
+      FLOWABLE_DATABASE_SCHEMA: flowable
+      FLOWABLE_DATABASE_SCHEMA_UPDATE: "true"
+
+      # --- Admin user cho Flowable REST API ---
+      FLOWABLE_REST_APP_ADMIN_USER_ID: ${FLOWABLE_ADMIN_USER:-admin}
+      FLOWABLE_REST_APP_ADMIN_PASSWORD: ${FLOWABLE_ADMIN_PASSWORD:-admin}
+      FLOWABLE_REST_APP_ADMIN_EMAIL: ${FLOWABLE_ADMIN_EMAIL:-admin@example.com}
+
+      # --- Callback NestJS (JavaDelegate/TaskListener gọi ngược) ---
+      # Chưa có service NestJS trong zhizhu_net — đây là placeholder, điền URL thật
+      # (container name nếu NestJS join zhizhu_net, hoặc URL external) khi có.
+      NESTJS_INTERNAL_BASE_URL: ${NESTJS_INTERNAL_BASE_URL:-http://nestjs:3000}
+
+      # --- Shared secret giữa Flowable và NestJS (dùng trong X-Internal-Auth header) ---
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+
+    ports:
+      - "127.0.0.1:${FLOWABLE_PORT:-8081}:8080"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-u",
+          "${FLOWABLE_ADMIN_USER:-admin}:${FLOWABLE_ADMIN_PASSWORD:-admin}",
+          "http://localhost:8080/flowable-rest/service/repository/deployments",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true
