@@ -20,6 +20,34 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
     └── config.example.yml
 ```
 
+## Bảng port đang dùng
+
+Tra bảng này trước khi thêm service mới / đổi `*_PORT` trong `.env` để tránh xung đột port trên host (đã từng xảy ra: `flowable` chọn `8081` trùng với Portainer).
+
+| Port | Bind | Service | Container | Thư mục |
+| ---- | ---- | ------- | --------- | ------- |
+| `25` | `0.0.0.0` | Mailu SMTP (direct, không qua tunnel) | `mailu` | `mailu/` |
+| `80` | `127.0.0.1` | Mailu HTTP | `mailu` | `mailu/` |
+| `443` | `127.0.0.1` | Mailu HTTPS | `mailu` | `mailu/` |
+| `2000` | `127.0.0.1` | Backend — core | `zhizhu-be-core` | `backend/` |
+| `2001` | `127.0.0.1` | Backend — app | `zhizhu-be-app` | `backend/` |
+| `2002` | `127.0.0.1` | Backend — core-jobs | `zhizhu-be-core-jobs` | `backend/` |
+| `2003` | `127.0.0.1` | Backend — app-jobs | `zhizhu-be-app-jobs` | `backend/` |
+| `3001` | `127.0.0.1` | Grafana | `zhizhu-grafana` | `monitoring/` |
+| `3333` | `0.0.0.0` ⚠️ | Frontend | `zhizhu-frontend` | `frontend/` |
+| `5672` | `127.0.0.1` | RabbitMQ — AMQP | `zhizhu-rabbitmq` | `rabbitmq/` |
+| `6379` | `127.0.0.1` | Redis | `zhizhu-redis` | `redis/` |
+| `8080` | `127.0.0.1` | Web | `zhizhu-web` | `web/` |
+| `8081` | `0.0.0.0` ⚠️ | Portainer (qua nginx) | `docker-ui-nginx` | `docker/` |
+| `8082` | `127.0.0.1` | Flowable (BPMN engine) | `zhizhu-flowable` | `flowable/` |
+| `8090` | `127.0.0.1` | OnlyOffice | `zhizhu-onlyoffice` | `onlyoffice/` |
+| `8200` | `127.0.0.1` | Vault | `vault` | `infrastructure/` |
+| `9090` | `127.0.0.1` | Prometheus | `zhizhu-prometheus` | `monitoring/` |
+| `9093` | `127.0.0.1` | Alertmanager | `zhizhu-alertmanager` | `monitoring/` |
+| `15672` | `127.0.0.1` | RabbitMQ — Management UI | `zhizhu-rabbitmq` | `rabbitmq/` |
+
+⚠️ = bind `0.0.0.0` (không giới hạn `127.0.0.1` như convention chung — xem [Key conventions](CLAUDE.md) — cân nhắc siết lại nếu không cần truy cập trực tiếp ngoài tunnel.
+
 ## 1. Copy lên server
 
 ```bash
