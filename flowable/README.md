@@ -1,6 +1,6 @@
 # Flowable
 
-BPMN engine (Flowable REST), chạy trên cổng `8081` (chỉ bind `127.0.0.1` — `8080` đã dùng bởi `zhizhu-web`), expose ra Internet qua Cloudflare Tunnel tại `flowable.zhizhu.online`.
+BPMN engine (Flowable REST), chạy trên cổng `8082` (chỉ bind `127.0.0.1` — `8080` đã dùng bởi `zhizhu-web`, `8081` đã dùng bởi Portainer), expose ra Internet qua Cloudflare Tunnel tại `flowable.zhizhu.online`.
 
 Image được build & push lên GHCR từ repo `flowable` riêng (không phải repo này) — compose ở đây chỉ pull & chạy.
 
@@ -43,7 +43,7 @@ Script sẽ:
 | Biến | Mô tả |
 | ---- | ----- |
 | `APP_IMAGE` | Image GHCR — mặc định `:latest`, override để pin bản `sha-<commit>` |
-| `FLOWABLE_PORT` | Port host bind (mặc định `8081` — `8080` đã dùng bởi `zhizhu-web`) |
+| `FLOWABLE_PORT` | Port host bind (mặc định `8082` — `8080` đã dùng bởi `zhizhu-web`, `8081` đã dùng bởi Portainer) |
 | `SUPABASE_DB_HOST` / `SUPABASE_DB_PORT` / `SUPABASE_DB_NAME` / `SUPABASE_DB_USER` / `SUPABASE_DB_PASSWORD` | Kết nối Supabase PostgreSQL (docker-compose tự ghép thành JDBC URL). Nên dùng **direct connection** (`db.[PROJECT_REF].supabase.co:5432`, user `postgres`) chứ không dùng pooler chế độ Transaction (`:6543`) — xem ghi chú trong `.env.example` |
 | `FLOWABLE_ADMIN_USER` / `FLOWABLE_ADMIN_PASSWORD` / `FLOWABLE_ADMIN_EMAIL` | Admin dùng để gọi Flowable REST API |
 | `INTERNAL_SERVICE_TOKEN` | Shared secret giữa Flowable và NestJS (header `X-Internal-Auth`) |
@@ -54,13 +54,13 @@ Script sẽ:
 Thêm route vào `cloudflared/config.example.yml` (đã có sẵn ở repo này):
 
 ```text
-flowable.zhizhu.online -> http://127.0.0.1:8081
+flowable.zhizhu.online -> http://127.0.0.1:8082
 ```
 
 ## Kiểm tra
 
 ```bash
-curl -u admin:your-password http://127.0.0.1:8081/flowable-rest/service/repository/deployments
+curl -u admin:your-password http://127.0.0.1:8082/flowable-rest/service/repository/deployments
 ```
 
 Kết quả mong đợi:

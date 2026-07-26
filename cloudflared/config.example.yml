@@ -9,6 +9,6 @@ ingress:
     service: http://127.0.0.1:8080
 
   - hostname: flowable.zhizhu.online
-    service: http://127.0.0.1:8081
+    service: http://127.0.0.1:8082
 
   - service: http_status:404
