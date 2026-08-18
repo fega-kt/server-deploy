@@ -1,0 +1,15 @@
+services:
+  ado:
+    image: ${ADO_IMAGE:-ghcr.io/fega-kt/ado:latest}
+    container_name: zhizhu-ado
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:${ADO_PORT:-8091}:3000"
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true

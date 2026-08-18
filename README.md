@@ -16,6 +16,9 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
 ├── flowable
 │   ├── docker-compose.yml
 │   └── .env.example
+├── ado
+│   ├── docker-compose.yml
+│   └── .env.example
 └── cloudflared
     └── config.example.yml
 ```
@@ -41,6 +44,7 @@ Tra bảng này trước khi thêm service mới / đổi `*_PORT` trong `.env` 
 | `8081` | `0.0.0.0` ⚠️ | Portainer (qua nginx) | `docker-ui-nginx` | `docker/` |
 | `8082` | `127.0.0.1` | Flowable (BPMN engine) | `zhizhu-flowable` | `flowable/` |
 | `8090` | `127.0.0.1` | OnlyOffice | `zhizhu-onlyoffice` | `onlyoffice/` |
+| `8091` | `127.0.0.1` | ADO Dashboard | `zhizhu-ado` | `ado/` |
 | `8200` | `127.0.0.1` | Vault | `vault` | `infrastructure/` |
 | `9090` | `127.0.0.1` | Prometheus | `zhizhu-prometheus` | `monitoring/` |
 | `9093` | `127.0.0.1` | Alertmanager | `zhizhu-alertmanager` | `monitoring/` |
@@ -119,7 +123,17 @@ bash up.sh
 
 > **Lưu ý:** Vault phải đang chạy và đã được unseal trước bước này. Xem [infrastructure/README.md](infrastructure/README.md).
 
-## 7. Kiểm tra
+## 7. Chạy ADO Dashboard
+
+```bash
+cd /opt/zhizhu/ado
+cp .env.example .env
+nano .env
+
+docker compose up -d
+```
+
+## 8. Kiểm tra
 
 ```bash
 docker ps
@@ -149,7 +163,13 @@ Logs flowable:
 docker logs zhizhu-flowable -n 100
 ```
 
-## 8. Cloudflared
+Logs ado:
+
+```bash
+docker logs zhizhu-ado -n 100
+```
+
+## 9. Cloudflared
 
 Ví dụ route:
 
@@ -157,6 +177,7 @@ Ví dụ route:
 api.zhizhu.online -> http://127.0.0.1:3000
 app.zhizhu.online -> http://127.0.0.1:8080
 flowable.zhizhu.online -> http://127.0.0.1:8082
+ado.zhizhu.online -> http://127.0.0.1:8091
 ```
 
 Tham khảo file:

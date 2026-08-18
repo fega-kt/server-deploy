@@ -23,15 +23,17 @@ Each service is managed independently from its own directory:
 
 ```bash
 # Start
-cd /opt/zhizhu/<service>   # redis | backend | web | flowable | Infrastructure
+cd /opt/zhizhu/<service>   # redis | backend | web | flowable | ado | Infrastructure
 cp .env.example .env       # first time only — then edit .env
 docker compose up -d
 
 # Logs
-docker logs zhizhu-backend -n 100
-docker logs zhizhu-redis   -n 100
-docker logs zhizhu-web     -n 100
-docker logs vault          -n 100
+docker logs zhizhu-backend  -n 100
+docker logs zhizhu-redis    -n 100
+docker logs zhizhu-web      -n 100
+docker logs zhizhu-flowable -n 100
+docker logs zhizhu-ado      -n 100
+docker logs vault           -n 100
 
 # Restart / stop
 docker compose restart
@@ -44,16 +46,18 @@ docker compose down
 Internet → Cloudflare Tunnel (cloudflared)
                ├── api.zhizhu.online       → 127.0.0.1:3000  (backend)
                ├── app.zhizhu.online       → 127.0.0.1:8080  (web)
-               └── flowable.zhizhu.online  → 127.0.0.1:8082  (flowable)
+               ├── flowable.zhizhu.online  → 127.0.0.1:8082  (flowable)
+               └── ado.zhizhu.online       → 127.0.0.1:8091  (ado)
 
 Host (127.0.0.1 only)
   :3000  zhizhu-backend   ← reads env from backend/.env, connects to zhizhu-redis via Docker DNS
   :6379  zhizhu-redis     ← password-protected, AOF persistence on redis_data volume
   :8080  zhizhu-web       ← static/frontend image
   :8082  zhizhu-flowable  ← Flowable REST (BPMN engine), image built from separate flowable repo, DB on Supabase
+  :8091  zhizhu-ado       ← ADO Project Dashboard (static + same-origin proxy, see github.com/fega-kt/ado)
   :8200  vault            ← HashiCorp Vault, data on vault_data volume
 
-Docker network: zhizhu_net (external, shared by backend / redis / web / flowable)
+Docker network: zhizhu_net (external, shared by backend / redis / web / flowable / ado)
 Vault is NOT on zhizhu_net — it runs standalone on Infrastructure/docker-compose.yml
 ```
 

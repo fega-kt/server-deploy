@@ -11,4 +11,7 @@ ingress:
   - hostname: flowable.zhizhu.online
     service: http://127.0.0.1:8082
 
+  - hostname: ado.zhizhu.online
+    service: http://127.0.0.1:8091
+
   - service: http_status:404
