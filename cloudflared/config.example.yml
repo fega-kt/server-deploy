@@ -14,4 +14,7 @@ ingress:
   - hostname: ado.zhizhu.online
     service: http://127.0.0.1:8091
 
+  - hostname: video.zhizhu.online
+    service: http://127.0.0.1:8501
+
   - service: http_status:404

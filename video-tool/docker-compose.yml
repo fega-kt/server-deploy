@@ -1,0 +1,34 @@
+services:
+  video-tool:
+    # Image build & push lên GHCR từ repo tools_video (workflow tự push tag :latest + :sha-<commit>).
+    # Override qua APP_IMAGE để pin 1 bản cụ thể.
+    image: ${APP_IMAGE:-ghcr.io/fega-kt/tools_video:latest}
+    container_name: zhizhu-video-tool
+    restart: unless-stopped
+
+    # Secrets từ Vault (up.sh ghi ra .env): CLAUDE_CODE_OAUTH_TOKEN, MONGODB_URI, AUTH_SECRET, PIXABAY_API_KEY...
+    env_file:
+      - .env
+
+    volumes:
+      # Dữ liệu sửa từ giao diện: branding.json, logo.png, data/.env (ngôn ngữ, giọng mặc định...).
+      - ./data:/data
+      # Video đã render — để ổ khác thì đặt OUTPUT_PATH (vd /mnt/videos) trong Vault.
+      - ${OUTPUT_PATH:-./data/output}:/output
+
+    ports:
+      - "127.0.0.1:${VIDEO_TOOL_PORT:-8501}:8501"
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true

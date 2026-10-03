@@ -19,6 +19,9 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
 ├── ado
 │   ├── docker-compose.yml
 │   └── .env.example
+├── video-tool
+│   ├── docker-compose.yml
+│   └── .env.example
 └── cloudflared
     └── config.example.yml
 ```
@@ -46,6 +49,7 @@ Tra bảng này trước khi thêm service mới / đổi `*_PORT` trong `.env` 
 | `8090` | `127.0.0.1` | OnlyOffice | `zhizhu-onlyoffice` | `onlyoffice/` |
 | `8091` | `127.0.0.1` | ADO Dashboard | `zhizhu-ado` | `ado/` |
 | `8200` | `127.0.0.1` | Vault | `vault` | `infrastructure/` |
+| `8501` | `127.0.0.1` | Video Tool (Streamlit) | `zhizhu-video-tool` | `video-tool/` |
 | `9090` | `127.0.0.1` | Prometheus | `zhizhu-prometheus` | `monitoring/` |
 | `9093` | `127.0.0.1` | Alertmanager | `zhizhu-alertmanager` | `monitoring/` |
 | `15672` | `127.0.0.1` | RabbitMQ — Management UI | `zhizhu-rabbitmq` | `rabbitmq/` |

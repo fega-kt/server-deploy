@@ -47,7 +47,8 @@ Internet → Cloudflare Tunnel (cloudflared)
                ├── api.zhizhu.online       → 127.0.0.1:3000  (backend)
                ├── app.zhizhu.online       → 127.0.0.1:8080  (web)
                ├── flowable.zhizhu.online  → 127.0.0.1:8082  (flowable)
-               └── ado.zhizhu.online       → 127.0.0.1:8091  (ado)
+               ├── ado.zhizhu.online       → 127.0.0.1:8091  (ado)
+               └── video.zhizhu.online     → 127.0.0.1:8501  (video-tool)
 
 Host (127.0.0.1 only)
   :3000  zhizhu-backend   ← reads env from backend/.env, connects to zhizhu-redis via Docker DNS
@@ -56,8 +57,9 @@ Host (127.0.0.1 only)
   :8082  zhizhu-flowable  ← Flowable REST (BPMN engine), image built from separate flowable repo, DB on Supabase
   :8091  zhizhu-ado       ← ADO Project Dashboard (static + same-origin proxy, see github.com/fega-kt/ado)
   :8200  vault            ← HashiCorp Vault, data on vault_data volume
+  :8501  zhizhu-video-tool ← Streamlit AI video tool, image from tools_video repo, data in video-tool/data
 
-Docker network: zhizhu_net (external, shared by backend / redis / web / flowable / ado)
+Docker network: zhizhu_net (external, shared by backend / redis / web / flowable / ado / video-tool)
 Vault is NOT on zhizhu_net — it runs standalone on Infrastructure/docker-compose.yml
 ```
 
