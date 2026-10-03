@@ -2,7 +2,7 @@
 
 Giao diện web tạo video YouTube bằng AI (Streamlit), chạy trên cổng `8501` (chỉ bind `127.0.0.1`), expose ra Internet qua Cloudflare Tunnel tại `video.zhizhu.online`.
 
-Image được build & push lên GHCR từ repo [`tools_video`](https://github.com/fega-kt/tools_video) — compose ở đây chỉ pull & chạy. Mỗi lần push `main` ở repo đó, GitHub Actions build image mới rồi SSH vào server chạy `docker compose pull && up -d` trong thư mục này.
+Image được build & push lên GHCR từ repo [`tools_video`](https://github.com/fega-kt/tools_video) — compose ở đây chỉ pull & chạy. Mỗi lần push `main` ở repo đó, GitHub Actions build image mới rồi SSH vào server (qua Cloudflare Access, giống backend) chạy `VAULT_TOKEN=... APP_IMAGE=<sha> bash up.sh` trong thư mục này.
 
 Secrets được lấy từ HashiCorp Vault thay vì chỉnh `.env` tay.
 

@@ -20,7 +20,10 @@ write_env
 OUTPUT_PATH=$(grep -E '^OUTPUT_PATH=' .env | tail -1 | cut -d= -f2- || true)
 mkdir -p data "${OUTPUT_PATH:-data/output}"
 if [ "$(stat -c %u data)" != "1000" ]; then
-  sudo chown -R 1000:1000 data "${OUTPUT_PATH:-data/output}"
+  # -n: never prompt (GitHub Actions runs this over SSH without a terminal).
+  chown -R 1000:1000 data "${OUTPUT_PATH:-data/output}" 2>/dev/null \
+    || sudo -n chown -R 1000:1000 data "${OUTPUT_PATH:-data/output}" \
+    || echo -e "${RED}[up.sh] Cần quyền ghi cho UID 1000: sudo chown -R 1000:1000 $(pwd)/data${NC}" >&2
 fi
 
 deploy
