@@ -1,0 +1,13 @@
+services:
+  sp-nextjs:
+    image: ${SP_IMAGE:-ghcr.io/fega-kt/sp-nextjs:latest}
+    container_name: zhizhu-sp-nextjs
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SP_PORT:-8092}:3000"
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true

@@ -22,6 +22,8 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
 ├── video-tool
 │   ├── docker-compose.yml
 │   └── .env.example
+├── sp-nextjs
+│   └── docker-compose.yml
 └── cloudflared
     └── config.example.yml
 ```
@@ -48,6 +50,7 @@ Tra bảng này trước khi thêm service mới / đổi `*_PORT` trong `.env` 
 | `8082` | `127.0.0.1` | Flowable (BPMN engine) | `zhizhu-flowable` | `flowable/` |
 | `8090` | `127.0.0.1` | OnlyOffice | `zhizhu-onlyoffice` | `onlyoffice/` |
 | `8091` | `127.0.0.1` | ADO Dashboard | `zhizhu-ado` | `ado/` |
+| `8092` | `127.0.0.1` | SharePoint Downloader | `zhizhu-sp-nextjs` | `sp-nextjs/` |
 | `8200` | `127.0.0.1` | Vault | `vault` | `infrastructure/` |
 | `8501` | `127.0.0.1` | Video Tool (Streamlit) | `zhizhu-video-tool` | `video-tool/` |
 | `9090` | `127.0.0.1` | Prometheus | `zhizhu-prometheus` | `monitoring/` |
@@ -137,7 +140,18 @@ nano .env
 docker compose up -d
 ```
 
-## 8. Kiểm tra
+## 8. Chạy SharePoint Downloader
+
+Không cần `.env` (xem [sp-nextjs/README.md](sp-nextjs/README.md)):
+
+```bash
+cd /opt/zhizhu/sp-nextjs
+docker compose up -d
+```
+
+CI của repo `sp-nextjs` tự `pull` + `up -d` mỗi lần push lên `main`.
+
+## 9. Kiểm tra
 
 ```bash
 docker ps
@@ -173,7 +187,13 @@ Logs ado:
 docker logs zhizhu-ado -n 100
 ```
 
-## 9. Cloudflared
+Logs sp-nextjs:
+
+```bash
+docker logs zhizhu-sp-nextjs -n 100
+```
+
+## 10. Cloudflared
 
 Ví dụ route:
 
@@ -182,6 +202,7 @@ api.zhizhu.online -> http://127.0.0.1:3000
 app.zhizhu.online -> http://127.0.0.1:8080
 flowable.zhizhu.online -> http://127.0.0.1:8082
 ado.zhizhu.online -> http://127.0.0.1:8091
+sp.zhizhu.online -> http://127.0.0.1:8092
 ```
 
 Tham khảo file:
