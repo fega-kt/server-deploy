@@ -11,6 +11,8 @@ services:
       VAULT_SECRET_PATH: secret/onlyoffice
       # Cho phép DocServer tải file từ IP private (backend/storage nội bộ trên zhizhu_net)
       ALLOW_PRIVATE_IP_ADDRESS: ${ALLOW_PRIVATE_IP_ADDRESS:-true}
+      # Thời gian tối đa DocServer tải xong file nguồn (mặc định của DS là 2m: file lớn qua mạng chậm bị cắt giữa chừng)
+      DOWNLOAD_TIMEOUT_WHOLE_CYCLE: ${DOWNLOAD_TIMEOUT_WHOLE_CYCLE:-10m}
     ports:
       - "127.0.0.1:8090:80"
     volumes:

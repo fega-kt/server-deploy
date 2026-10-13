@@ -31,6 +31,24 @@ echo "[vault-init] Secrets loaded from Vault"
 echo "[vault-init] JWT_ENABLED=${JWT_ENABLED:-not set}"
 echo "[vault-init] EXAMPLE_ENABLED=${EXAMPLE_ENABLED:-not set}"
 
+# Nới thời gian tải file nguồn của converter (mặc định 2m) sau khi run-document-server.sh đã sinh local.json
+if [ -n "${DOWNLOAD_TIMEOUT_WHOLE_CYCLE:-}" ]; then
+  (until supervisorctl status ds:docservice 2>/dev/null | grep -q RUNNING; do sleep 5; done
+   python3 -c "
+import json, os
+path = '/etc/onlyoffice/documentserver/local.json'
+with open(path) as f:
+    cfg = json.load(f)
+timeout = cfg.setdefault('FileConverter', {}).setdefault('converter', {}).setdefault('downloadTimeout', {})
+timeout['wholeCycle'] = os.environ['DOWNLOAD_TIMEOUT_WHOLE_CYCLE']
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+"
+   echo "[vault-init] Patched converter downloadTimeout.wholeCycle=${DOWNLOAD_TIMEOUT_WHOLE_CYCLE}"
+   supervisorctl restart ds:converter
+   echo "[vault-init] ds:converter restarted") &
+fi
+
 # Start ds:example after docservice is ready (only if EXAMPLE_ENABLED=true)
 if [ "${EXAMPLE_ENABLED:-false}" = "true" ]; then
   echo "[vault-init] EXAMPLE_ENABLED=true, waiting for ds:docservice..."
