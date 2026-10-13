@@ -9,6 +9,8 @@ services:
       VAULT_ADDR: ${VAULT_ADDR}
       VAULT_TOKEN: ${VAULT_TOKEN}
       VAULT_SECRET_PATH: secret/onlyoffice
+      # Cho phép DocServer tải file từ IP private (backend/storage nội bộ trên zhizhu_net)
+      ALLOW_PRIVATE_IP_ADDRESS: ${ALLOW_PRIVATE_IP_ADDRESS:-true}
     ports:
       - "127.0.0.1:8090:80"
     volumes:
