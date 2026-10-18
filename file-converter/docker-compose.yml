@@ -1,0 +1,23 @@
+services:
+  file-converter:
+    # Image build & push lên GHCR từ repo netcore (FileConverter — workflow tự push tag :latest + :sha-<commit>).
+    # Override qua APP_IMAGE để pin 1 bản cụ thể.
+    image: ${APP_IMAGE:-ghcr.io/fega-kt/netcore:latest}
+    container_name: zhizhu-file-converter
+    restart: unless-stopped
+
+    # Secrets từ Vault (up.sh ghi ra .env): SYNCFUSION_LICENSE_KEY
+    env_file:
+      - .env
+
+    # Chỉ dùng nội bộ: backend gọi qua Docker DNS http://zhizhu-file-converter:8080 (không có xác thực, không route ra Internet).
+    # Port host chỉ để kiểm tra / gọi thử trên server.
+    ports:
+      - "127.0.0.1:${FILE_CONVERTER_PORT:-8093}:8080"
+
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true
