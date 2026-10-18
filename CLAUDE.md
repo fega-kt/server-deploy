@@ -23,7 +23,7 @@ Each service is managed independently from its own directory:
 
 ```bash
 # Start
-cd /opt/zhizhu/<service>   # redis | backend | web | flowable | ado | sp-nextjs | file-converter | Infrastructure
+cd /opt/zhizhu/<service>   # redis | backend | web | flowable | ado | sp-nextjs | file-converter | e-signature | Infrastructure
 cp .env.example .env       # first time only — then edit .env
 docker compose up -d
 
@@ -35,6 +35,7 @@ docker logs zhizhu-flowable -n 100
 docker logs zhizhu-ado      -n 100
 docker logs zhizhu-sp-nextjs -n 100
 docker logs zhizhu-file-converter -n 100
+docker logs zhizhu-e-signature -n 100
 docker logs vault           -n 100
 
 # Restart / stop
@@ -61,10 +62,11 @@ Host (127.0.0.1 only)
   :8091  zhizhu-ado       ← ADO Project Dashboard (static + same-origin proxy, see github.com/fega-kt/ado)
   :8092  zhizhu-sp-nextjs ← SharePoint Downloader (Next.js, github.com/fega-kt/sp-nextjs), no .env needed
   :8093  zhizhu-file-converter ← Word/Excel/PPT → PDF (ASP.NET, github.com/fega-kt/netcore), internal only (no tunnel route); backend calls http://zhizhu-file-converter:8080
+  :8094  zhizhu-e-signature ← internal e-signature service (ASP.NET, github.com/fega-kt/e-signature), internal only; backend calls http://zhizhu-e-signature:8080 with X-Service-Token
   :8200  vault            ← HashiCorp Vault, data on vault_data volume
   :8501  zhizhu-video-tool ← Streamlit AI video tool, image from tools_video repo, data in video-tool/data
 
-Docker network: zhizhu_net (external, shared by backend / redis / web / flowable / ado / sp-nextjs / video-tool / file-converter)
+Docker network: zhizhu_net (external, shared by backend / redis / web / flowable / ado / sp-nextjs / video-tool / file-converter / e-signature)
 Vault is NOT on zhizhu_net — it runs standalone on Infrastructure/docker-compose.yml
 ```
 

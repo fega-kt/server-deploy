@@ -28,6 +28,10 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
 │   ├── docker-compose.yml
 │   ├── up.sh
 │   └── .env.example
+├── e-signature
+│   ├── docker-compose.yml
+│   ├── up.sh
+│   └── .env.example
 └── cloudflared
     └── config.example.yml
 ```
@@ -56,6 +60,7 @@ Tra bảng này trước khi thêm service mới / đổi `*_PORT` trong `.env` 
 | `8091` | `127.0.0.1` | ADO Dashboard | `zhizhu-ado` | `ado/` |
 | `8092` | `127.0.0.1` | SharePoint Downloader | `zhizhu-sp-nextjs` | `sp-nextjs/` |
 | `8093` | `127.0.0.1` | File Converter (Word/Excel → PDF, chỉ nội bộ) | `zhizhu-file-converter` | `file-converter/` |
+| `8094` | `127.0.0.1` | E-signature (ký số nội bộ, chỉ nội bộ) | `zhizhu-e-signature` | `e-signature/` |
 | `8200` | `127.0.0.1` | Vault | `vault` | `infrastructure/` |
 | `8501` | `127.0.0.1` | Video Tool (Streamlit) | `zhizhu-video-tool` | `video-tool/` |
 | `9090` | `127.0.0.1` | Prometheus | `zhizhu-prometheus` | `monitoring/` |
@@ -169,6 +174,20 @@ bash up.sh
 Chỉ dùng nội bộ (không route Cloudflare Tunnel): backend gọi `http://zhizhu-file-converter:8080`.
 CI của repo `netcore` tự chạy `up.sh` mỗi lần push lên `main`.
 
+## 8b. Chạy E-signature
+
+Secret (`Signing__MasterKey`, `Signing__ServiceToken`, `Signing__KeyStore__*`) lấy từ Vault (xem [e-signature/README.md](e-signature/README.md)):
+
+```bash
+cd /opt/zhizhu/e-signature
+cp .vault.json.example .vault.json
+bash up.sh
+curl -X POST -H "X-Service-Token: <Signing__ServiceToken>" http://127.0.0.1:8094/ca/init   # tạo CA, chỉ một lần
+```
+
+Chỉ dùng nội bộ (không route Cloudflare Tunnel): backend gọi `http://zhizhu-e-signature:8080`.
+CI của repo `e-signature` tự chạy `up.sh` mỗi lần push lên `main`.
+
 ## 9. Kiểm tra
 
 ```bash
@@ -215,6 +234,12 @@ Logs file-converter:
 
 ```bash
 docker logs zhizhu-file-converter -n 100
+```
+
+Logs e-signature:
+
+```bash
+docker logs zhizhu-e-signature -n 100
 ```
 
 ## 10. Cloudflared

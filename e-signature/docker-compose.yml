@@ -1,0 +1,23 @@
+services:
+  e-signature:
+    # Image build & push lên GHCR từ repo e-signature (workflow tự push tag :latest + :sha-<commit>).
+    # Override qua APP_IMAGE để pin 1 bản cụ thể.
+    image: ${APP_IMAGE:-ghcr.io/fega-kt/e-signature:latest}
+    container_name: zhizhu-e-signature
+    restart: unless-stopped
+
+    # Secrets từ Vault (up.sh ghi ra .env): Signing__MasterKey, Signing__ServiceToken, Signing__KeyStore__*…
+    env_file:
+      - .env
+
+    # Chỉ dùng nội bộ: backend gọi qua Docker DNS http://zhizhu-e-signature:8080 (xác thực bằng X-Service-Token,
+    # không route ra Internet). Port host chỉ để gọi thử / khởi tạo CA trên server.
+    ports:
+      - "127.0.0.1:${E_SIGNATURE_PORT:-8094}:8080"
+
+    networks:
+      - zhizhu_net
+
+networks:
+  zhizhu_net:
+    external: true
