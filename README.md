@@ -24,6 +24,10 @@ Cấu trúc này tách riêng từng service để dễ quản lý:
 │   └── .env.example
 ├── sp-nextjs
 │   └── docker-compose.yml
+├── file-converter
+│   ├── docker-compose.yml
+│   ├── up.sh
+│   └── .env.example
 └── cloudflared
     └── config.example.yml
 ```
@@ -51,6 +55,7 @@ Tra bảng này trước khi thêm service mới / đổi `*_PORT` trong `.env` 
 | `8090` | `127.0.0.1` | OnlyOffice | `zhizhu-onlyoffice` | `onlyoffice/` |
 | `8091` | `127.0.0.1` | ADO Dashboard | `zhizhu-ado` | `ado/` |
 | `8092` | `127.0.0.1` | SharePoint Downloader | `zhizhu-sp-nextjs` | `sp-nextjs/` |
+| `8093` | `127.0.0.1` | File Converter (Word/Excel → PDF, chỉ nội bộ) | `zhizhu-file-converter` | `file-converter/` |
 | `8200` | `127.0.0.1` | Vault | `vault` | `infrastructure/` |
 | `8501` | `127.0.0.1` | Video Tool (Streamlit) | `zhizhu-video-tool` | `video-tool/` |
 | `9090` | `127.0.0.1` | Prometheus | `zhizhu-prometheus` | `monitoring/` |
@@ -151,6 +156,19 @@ docker compose up -d
 
 CI của repo `sp-nextjs` tự `pull` + `up -d` mỗi lần push lên `main`.
 
+## 8a. Chạy File Converter
+
+Secret (`SYNCFUSION_LICENSE_KEY`) lấy từ Vault (xem [file-converter/README.md](file-converter/README.md)):
+
+```bash
+cd /opt/zhizhu/file-converter
+cp .vault.json.example .vault.json
+bash up.sh
+```
+
+Chỉ dùng nội bộ (không route Cloudflare Tunnel): backend gọi `http://zhizhu-file-converter:8080`.
+CI của repo `netcore` tự chạy `up.sh` mỗi lần push lên `main`.
+
 ## 9. Kiểm tra
 
 ```bash
@@ -191,6 +209,12 @@ Logs sp-nextjs:
 
 ```bash
 docker logs zhizhu-sp-nextjs -n 100
+```
+
+Logs file-converter:
+
+```bash
+docker logs zhizhu-file-converter -n 100
 ```
 
 ## 10. Cloudflared
