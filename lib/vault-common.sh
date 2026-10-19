@@ -109,7 +109,26 @@ write_env() {
   echo -e "${GREEN}✔ .env written to $(pwd)/.env${NC}"
 }
 
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Pull từng image của compose với tiến trình dễ đọc (tổng MB cần tải, tốc độ, còn lại — xem pull-progress.py);
+# không có python3 hoặc script lỗi thì quay về docker compose pull như cũ
+pull_images() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    docker compose pull
+    return
+  fi
+  local image
+  for image in $(docker compose config --images); do
+    if ! python3 "$LIB_DIR/pull-progress.py" "$image"; then
+      echo "[pull] Không pull được bằng pull-progress.py, dùng docker compose pull"
+      docker compose pull
+      return
+    fi
+  done
+}
+
 deploy() {
-  docker compose pull
+  pull_images
   docker compose up -d --force-recreate
 }
