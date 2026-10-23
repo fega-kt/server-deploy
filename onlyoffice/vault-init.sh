@@ -31,22 +31,35 @@ echo "[vault-init] Secrets loaded from Vault"
 echo "[vault-init] JWT_ENABLED=${JWT_ENABLED:-not set}"
 echo "[vault-init] EXAMPLE_ENABLED=${EXAMPLE_ENABLED:-not set}"
 
-# Nới thời gian tải file nguồn của converter (mặc định 2m) sau khi run-document-server.sh đã sinh local.json
-if [ -n "${DOWNLOAD_TIMEOUT_WHOLE_CYCLE:-}" ]; then
+# Nới giới hạn của converter sau khi run-document-server.sh đã sinh local.json:
+# - DOWNLOAD_TIMEOUT_WHOLE_CYCLE: thời gian tải file nguồn (mặc định 2m)
+# - INPUT_UNCOMPRESSED_LIMIT: dung lượng XML sau giải nén của docx / pptx / vsdx (mặc định 50MB; xlsx giữ mặc định 300MB)
+# Dung lượng file nguồn giữ mặc định của DS (100MB): backend đã không gửi file vượt ONLYOFFICE_MAX_FILE_SIZE_MB sang DS
+if [ -n "${DOWNLOAD_TIMEOUT_WHOLE_CYCLE:-}${INPUT_UNCOMPRESSED_LIMIT:-}" ]; then
   (until supervisorctl status ds:docservice 2>/dev/null | grep -q RUNNING; do sleep 5; done
    python3 -c "
 import json, os
 path = '/etc/onlyoffice/documentserver/local.json'
 with open(path) as f:
     cfg = json.load(f)
-timeout = cfg.setdefault('FileConverter', {}).setdefault('converter', {}).setdefault('downloadTimeout', {})
-timeout['wholeCycle'] = os.environ['DOWNLOAD_TIMEOUT_WHOLE_CYCLE']
+converter = cfg.setdefault('FileConverter', {}).setdefault('converter', {})
+if os.environ.get('DOWNLOAD_TIMEOUT_WHOLE_CYCLE'):
+    converter.setdefault('downloadTimeout', {})['wholeCycle'] = os.environ['DOWNLOAD_TIMEOUT_WHOLE_CYCLE']
+if os.environ.get('INPUT_UNCOMPRESSED_LIMIT'):
+    # Mảng trong local.json thay cả mảng của default.json: chép từ default rồi chỉ nâng các mục đang dưới mức mới
+    with open('/etc/onlyoffice/documentserver/default.json') as f:
+        limits = json.load(f)['FileConverter']['converter']['inputLimits']
+    for item in limits:
+        if not item['type'].startswith('xlsx'):
+            item['zip']['uncompressed'] = os.environ['INPUT_UNCOMPRESSED_LIMIT']
+    converter['inputLimits'] = limits
 with open(path, 'w') as f:
     json.dump(cfg, f, indent=2)
 "
-   echo "[vault-init] Patched converter downloadTimeout.wholeCycle=${DOWNLOAD_TIMEOUT_WHOLE_CYCLE}"
-   supervisorctl restart ds:converter
-   echo "[vault-init] ds:converter restarted") &
+   echo "[vault-init] Patched converter limits: downloadTimeout=${DOWNLOAD_TIMEOUT_WHOLE_CYCLE:-default} inputUncompressed=${INPUT_UNCOMPRESSED_LIMIT:-default}"
+   # inputLimits được đọc ở cả docservice (mở tệp) lẫn converter
+   supervisorctl restart ds:docservice ds:converter
+   echo "[vault-init] ds:docservice, ds:converter restarted") &
 fi
 
 # Start ds:example after docservice is ready (only if EXAMPLE_ENABLED=true)
