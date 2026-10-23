@@ -13,6 +13,8 @@ services:
       ALLOW_PRIVATE_IP_ADDRESS: ${ALLOW_PRIVATE_IP_ADDRESS:-true}
       # Thời gian tối đa DocServer tải xong file nguồn (mặc định của DS là 2m: file lớn qua mạng chậm bị cắt giữa chừng)
       DOWNLOAD_TIMEOUT_WHOLE_CYCLE: ${DOWNLOAD_TIMEOUT_WHOLE_CYCLE:-10m}
+      # XML sau giải nén của docx / pptx (mặc định của DS là 50MB): văn bản dài nhiều bảng vượt mức này
+      INPUT_UNCOMPRESSED_LIMIT: ${INPUT_UNCOMPRESSED_LIMIT:-300MB}
     ports:
       - "127.0.0.1:8090:80"
     volumes:
