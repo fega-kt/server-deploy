@@ -10,6 +10,20 @@ services:
     env_file:
       - .env
 
+    environment:
+      # Tệp lớn nhất nhận chuyển (MB) — giữ bằng trần upload của backend
+      MAX_FILE_MB: ${MAX_FILE_MB:-200}
+      # Số lượt chuyển chạy cùng lúc (Syncfusion dựng cả tài liệu trong RAM), lượt sau xếp hàng chờ
+      MAX_CONCURRENT_CONVERSIONS: ${MAX_CONCURRENT_CONVERSIONS:-4}
+
+    # Tệp lớn có thể cần vài GB khi chuyển: chặn trần để không ảnh hưởng các service khác trên server
+    # (server 13 GB, ~5 GB đang dùng: 6 GB đủ cho 4 lượt song song, vẫn chừa ~2 GB cho service khác lúc cao điểm)
+    mem_limit: ${FILE_CONVERTER_MEM_LIMIT:-6g}
+
+    # Tệp upload và PDF kết quả ghi ra /tmp (không giữ trong RAM): volume riêng để không phình lớp ghi của container
+    volumes:
+      - file_converter_tmp:/tmp
+
     # Chỉ dùng nội bộ: backend gọi qua Docker DNS http://zhizhu-file-converter:8080 (không có xác thực, không route ra Internet).
     # Port host chỉ để kiểm tra / gọi thử trên server.
     ports:
@@ -17,6 +31,9 @@ services:
 
     networks:
       - zhizhu_net
+
+volumes:
+  file_converter_tmp:
 
 networks:
   zhizhu_net:
