@@ -129,6 +129,11 @@ pull_images() {
 }
 
 deploy() {
+  local start=$SECONDS
   pull_images
+  echo "[deploy] pull took $((SECONDS - start))s"
+
+  start=$SECONDS
   docker compose up -d --force-recreate
+  echo "[deploy] up took $((SECONDS - start))s"
 }
