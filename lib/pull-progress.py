@@ -87,16 +87,29 @@ class Progress:
         self.last_print = 0.0
         self.last_bytes = 0
         self.last_bytes_at = self.started
+        self.speed = 0.0
+        # Khoảng thời gian thật sự nhận byte (bỏ thời gian xác thực registry / giải nén) để tính tốc độ trung bình
+        self.first_byte_at = None
+        self.last_byte_at = None
+        # Dòng cuối của Docker: "Status: Image is up to date for …" / "Status: Downloaded newer image for …"
+        self.final_status = ""
 
     def update(self, event):
         layer_id, status = event.get("id"), event.get("status", "")
-        if not layer_id or status.startswith(("Pulling from", "Digest", "Status")):
+        if status.startswith("Status:"):
+            self.final_status = status
+            return
+        if not layer_id or status.startswith(("Pulling from", "Digest")):
             return
         layer = self.layers.setdefault(layer_id, {"state": "waiting", "current": 0, "total": 0})
         detail = event.get("progressDetail") or {}
         if status == "Already exists":
             layer["state"] = "exists"
         elif status == "Downloading":
+            if detail.get("current", 0) > layer["current"]:
+                now = time.monotonic()
+                self.first_byte_at = self.first_byte_at or now
+                self.last_byte_at = now
             layer.update(state="downloading", current=detail.get("current", 0), total=detail.get("total", layer["total"]))
         elif status in ("Verifying Checksum", "Download complete", "Extracting", "Pull complete"):
             layer["state"] = "done" if status == "Pull complete" else "downloaded"
@@ -116,28 +129,63 @@ class Progress:
             return
         self.last_print = now
         done_bytes, known_total, unknown = self.totals()
-        speed = (done_bytes - self.last_bytes) / max(now - self.last_bytes_at, 1e-6)
-        self.last_bytes, self.last_bytes_at = done_bytes, now
+        # Tốc độ trên khoảng >= 1s kể từ lần đo trước; khoảng ngắn hơn thì giữ số cũ (tránh vọt số khi in sát nhau)
+        if now - self.last_bytes_at >= 1:
+            self.speed = (done_bytes - self.last_bytes) / (now - self.last_bytes_at)
+            self.last_bytes, self.last_bytes_at = done_bytes, now
+        speed = self.speed
         states = [l["state"] for l in self.layers.values()]
         counts = {s: states.count(s) for s in ("exists", "done", "downloaded", "downloading", "waiting")}
+        layers = (
+            f"{len(states)} lớp: {counts['exists']} có sẵn, {counts['done'] + counts['downloaded']} xong,"
+            f" {counts['downloading']} đang tải, {counts['waiting']} chờ"
+        )
+        if not known_total and not counts["downloading"]:
+            # Chưa có lớp nào báo dung lượng (đang hỏi registry, hoặc chỉ toàn lớp nhỏ tải xong ngay): khỏi in "0.0 MB · 0.00 MB/s"
+            print(f"{time.strftime('%H:%M:%S')}  {layers}", flush=True)
+            return
         percent = f" ({done_bytes * 100 // known_total}%)" if known_total else ""
         remaining = f" · còn ~{duration((known_total - done_bytes) / speed)}" if speed > 0 and known_total > done_bytes else ""
         unknown_note = f" (+{unknown} lớp chưa rõ dung lượng)" if unknown else ""
         print(
             f"{time.strftime('%H:%M:%S')}  {mb(done_bytes)} / {mb(known_total)} MB{percent}{unknown_note}"
-            f" · {speed / MB:.2f} MB/s{remaining}"
-            f" · {len(states)} lớp: {counts['exists']} có sẵn, {counts['done'] + counts['downloaded']} xong,"
-            f" {counts['downloading']} đang tải, {counts['waiting']} chờ",
+            f"{f' · {speed / MB:.2f} MB/s' if speed > 0 and known_total > done_bytes else ''}{remaining} · {layers}",
             flush=True,
         )
         for layer_id, layer in self.layers.items():
             if layer["state"] == "downloading" and layer["total"]:
                 print(f"  {layer_id} {bar(layer['current'], layer['total'])} {mb(layer['current']):>7} / {mb(layer['total'])} MB", flush=True)
 
-    def summary(self):
+    def summary(self, image_size=None):
+        """image_size: dung lượng image sau khi pull (byte, từ /images/{name}/json); None nếu không đọc được"""
         done_bytes, _, _ = self.totals()
         elapsed = time.monotonic() - self.started
-        print(f"[pull] xong {self.image}: tải {mb(done_bytes)} MB trong {duration(elapsed)} ({done_bytes / MB / max(elapsed, 1e-6):.2f} MB/s)", flush=True)
+        size = f"image {mb(image_size)} MB" if image_size else "không rõ dung lượng image"
+        pulled = [l for l in self.layers.values() if l["state"] != "exists"]
+        head = f"[pull] xong {self.image}:"
+        if "up to date" in self.final_status or not pulled:
+            print(f"{head} đã mới nhất, không cần tải ({size}) · kiểm tra trong {duration(elapsed)}", flush=True)
+        elif done_bytes:
+            # Tốc độ tính trên khoảng thật sự nhận byte; khoảng quá ngắn (lớp nhỏ) thì không đủ tin để in
+            transfer = (self.last_byte_at - self.first_byte_at) if self.first_byte_at else 0
+            speed = f", {done_bytes / MB / transfer:.2f} MB/s" if transfer >= 1 else ""
+            print(f"{head} tải {mb(done_bytes)} MB / {len(pulled)} lớp mới ({size}) trong {duration(elapsed)}{speed}", flush=True)
+        else:
+            # Có lớp mới nhưng Docker không báo dung lượng (lớp nhỏ tải xong ngay)
+            print(f"{head} tải {len(pulled)} lớp mới, Docker không báo dung lượng ({size}) trong {duration(elapsed)}", flush=True)
+
+
+def image_size(image):
+    """Dung lượng (byte) của image đã có trên máy; None nếu không đọc được — chỉ để hiển thị, không làm pull lỗi"""
+    try:
+        conn = UnixHTTPConnection(SOCKET_PATH)
+        # Như docker CLI: giữ nguyên "/", ":" và "@" của tên image trong đường dẫn
+        conn.request("GET", f"/images/{urllib.parse.quote(image, safe='/:@')}/json")
+        res = conn.getresponse()
+        body = res.read()
+        return json.loads(body).get("Size") if res.status == 200 else None
+    except (OSError, ValueError):
+        return None
 
 
 def pull(image):
@@ -171,7 +219,7 @@ def pull(image):
         progress.update(event)
         progress.print_block()
     progress.print_block(force=True)
-    progress.summary()
+    progress.summary(image_size(image))
     return 0
 
 
