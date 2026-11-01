@@ -1,8 +1,13 @@
+x-dns: &dns
+  - 1.1.1.1
+  - 8.8.8.8
+
 services:
   be-core:
     image: ${CORE_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-core:latest}
     container_name: zhizhu-be-core
     restart: unless-stopped
+    dns: *dns
     env_file:
       - .env
     command: ["node", "dist/apps/core/main.js"]
@@ -15,6 +20,7 @@ services:
     image: ${APP_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-app:latest}
     container_name: zhizhu-be-app
     restart: unless-stopped
+    dns: *dns
     env_file:
       - .env
     command: ["node", "dist/apps/app/main.js"]
@@ -27,6 +33,7 @@ services:
     image: ${CORE_JOBS_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-core-jobs:latest}
     container_name: zhizhu-be-core-jobs
     restart: unless-stopped
+    dns: *dns
     env_file:
       - .env
     command: ["node", "dist/jobs/core-jobs/main.js"]
@@ -39,6 +46,7 @@ services:
     image: ${APP_JOBS_IMAGE:-ghcr.io/fega-kt/backend-mikroorm-app-jobs:latest}
     container_name: zhizhu-be-app-jobs
     restart: unless-stopped
+    dns: *dns
     env_file:
       - .env
     command: ["node", "dist/jobs/app-jobs/main.js"]
